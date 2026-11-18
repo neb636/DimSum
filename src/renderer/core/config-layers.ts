@@ -60,6 +60,11 @@ function watchFolder(folder: string): void {
   }));
 }
 
+/** Reads a workspace's documents again: where its layers come from changed (it became a worktree of another workspace). */
+export function reloadConfig(root: string): void {
+  for (const entry of tracked.values()) if (entry.root === root) void loadConfig(entry.name, entry.root);
+}
+
 /** Stops keeping a workspace's documents current (its workspace was removed). */
 export function forgetConfig(root: string): void {
   watching.get(root)?.();

@@ -198,6 +198,12 @@ try {
   assert.deepEqual(await tabNames(), ["Elsewhere shell"]);
   const repoSettings = JSON.parse(await readFile(join(repo, ".dimsum", "settings.local.json"), "utf8"));
   assert.deepEqual(repoSettings.extensions.disabled, ["workspace:qa-off"]);
+  // Its instructions are read again from the repository's personal layer straight away, without a restart.
+  await page.getByRole("button", { name: "Create view" }).click();
+  await page.getByRole("menuitem", { name: /Agent session/ }).click();
+  await page.getByRole("button", { name: /^Instructions/ }).click();
+  await page.getByRole("switch", { name: /Old personal/ }).waitFor();
+  await page.keyboard.press("Escape");
   assert.equal(await page.locator(".confirm-warning[role=alert]").count(), 0, "the state saved");
 
   // Saved with each worktree under its repository, and restored that way.

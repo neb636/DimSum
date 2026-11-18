@@ -5,6 +5,7 @@ import type { Workspace } from "../../../shared/models";
 import { isFilesWorkspace } from "../../../shared/files-workspace";
 import { repositoryOf } from "../../../shared/workspace-tree";
 import { services } from "../../core/services";
+import { reloadConfig } from "../../core/config-layers";
 import { useWorkbenchStore } from "../../state/workbench-store";
 
 /**
@@ -95,7 +96,11 @@ export async function openWorktree(workspaceId: string, path: string, branch?: s
   const standalone = useWorkbenchStore.getState().workspaces.find((item) => !isFilesWorkspace(item) && !item.parentId && item.id !== repository.id && samePath(item.path, path));
   const granted = await window.workbench.sourceControl.openWorktree(repository.path, path, Boolean(standalone));
   const store = useWorkbenchStore.getState();
-  if (standalone) store.adoptWorktree(standalone.id, repository.id);
+  if (standalone) {
+    store.adoptWorktree(standalone.id, repository.id);
+    // Its personal layer is the repository's from now on; what was read before came from its own folder.
+    reloadConfig(standalone.path);
+  }
   const id = standalone?.id ?? store.addWorkspace(granted, { parentId: repository.id, ...(branch ? { name: branch } : {}), initialView: null });
   show(id);
   return id;
