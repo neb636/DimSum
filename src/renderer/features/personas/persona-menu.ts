@@ -2,6 +2,7 @@ import { choice, select } from "../../../shared/prompt-options";
 import type { PromptMenuDefinition } from "../../core/prompt-menu-registry";
 import { useWorkbenchStore } from "../../state/workbench-store";
 import { UserIcon } from "../../ui/icons";
+import { repositoryIdOf } from "../../../shared/workspace-tree";
 import { PersonaManager } from "./PersonaManager";
 
 export const personaMenu: PromptMenuDefinition = {
@@ -15,7 +16,10 @@ export const personaMenu: PromptMenuDefinition = {
   resetAfterSend: true,
   subscribe: (listener) => useWorkbenchStore.subscribe((state, previous) => { if (state.personas !== previous.personas) listener(); }),
   options: ({ workspaceId }) => {
-    const personas = useWorkbenchStore.getState().personas.filter((p) => p.scope === "global" || p.workspaceId === workspaceId);
+    // A worktree shares its repository's personas.
+    const { personas: all, workspaces } = useWorkbenchStore.getState();
+    const repositoryId = repositoryIdOf(workspaces, workspaceId);
+    const personas = all.filter((p) => p.scope === "global" || p.workspaceId === repositoryId);
     return [select("active-persona", {
       label: "Persona",
       display: "list",

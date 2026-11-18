@@ -1,4 +1,5 @@
 import { imagePreview } from "./image-previews";
+import { mergePersonalFiles } from "./worktree-adoption";
 import { app, dialog, ipcMain, shell, Menu, type WebContents } from "electron";
 import { promises as fs } from "node:fs";
 import { FileOperations } from "./file-operations";
@@ -17,6 +18,7 @@ import {
   commitSchema,
   baseBranchesSchema,
   createWorktreeSchema,
+  openWorktreeSchema,
   fileOperationSchema,
   fileAtSchema,
   fileCreateSchema,
@@ -93,9 +95,10 @@ class FileWatchOwners {
 
 type SavedState = ReturnType<typeof persistedStateSchema.parse>;
 
-/** The folders of the saved workspaces; the Files workspace has none. */
-function folderPaths(state: SavedState): string[] {
-  return state.workspaces.filter((item) => item.kind !== "files").map((item) => item.path);
+/** The folders of the saved workspaces, each worktree with its repository's; the Files workspace has none. */
+function folderPaths(state: SavedState): { path: string; parentPath?: string }[] {
+  const folders = state.workspaces.filter((item) => item.kind !== "files");
+  return folders.map((item) => ({ path: item.path, parentPath: folders.find((parent) => parent.id === item.parentId)?.path }));
 }
 
 /** The files open in the Files workspace: each one was granted when it was opened, and stays granted while its tab does. */
@@ -145,7 +148,7 @@ export function handle(channel: string, listener: (event: Electron.IpcMainInvoke
   ipcMain.handle(channel, (event, input: unknown) => {
     assertAppSender(event);
     assertInputBudget(input);
-    const executing = new Set<string>([IPC.sourceControlCommit, IPC.sourceControlRunAction, IPC.sourceControlStage, IPC.sourceControlUnstage, IPC.sourceControlDiscard, IPC.sourceControlBranchAction, IPC.sourceControlRevert, IPC.sourceControlStashAction, IPC.sourceControlCreateWorktree, IPC.sourceControlCheckout, IPC.sourceControlGenerateCommitMessage, IPC.sourceControlPreviewCommitMessage]);
+    const executing = new Set<string>([IPC.sourceControlCommit, IPC.sourceControlRunAction, IPC.sourceControlStage, IPC.sourceControlUnstage, IPC.sourceControlDiscard, IPC.sourceControlBranchAction, IPC.sourceControlRevert, IPC.sourceControlStashAction, IPC.sourceControlCreateWorktree, IPC.sourceControlOpenWorktree, IPC.sourceControlCheckout, IPC.sourceControlGenerateCommitMessage, IPC.sourceControlPreviewCommitMessage]);
     if (executing.has(channel) || (channel === IPC.sourceControlBaseBranches && baseBranchesSchema.parse(input).refresh)) {
       const { root } = workspaceRootSchema.parse(input);
       if (!resolveExecutionRoot) throw new Error("Workspace authorization is unavailable.");
@@ -233,7 +236,7 @@ export function registerIpc(ptyManager: PtyManager, agentSessionManager: AgentSe
       buttonLabel: "Add workspace",
     });
     const chosen = result.canceled ? null : result.filePaths[0] ?? null;
-    if (chosen) workspace.roots.add(chosen);
+    if (chosen) workspace.roots.add(chosen, workspace.roots.repositoryOf(chosen));
     return chosen;
   });
   handle(IPC.workspaceChooseIcon, async () => {
@@ -369,7 +372,24 @@ export function registerIpc(ptyManager: PtyManager, agentSessionManager: AgentSe
   });
   handle(IPC.sourceControlCreateWorktree, async (_event, input: unknown) => {
     const { root, branch, base } = createWorktreeSchema.parse(input);
-    return workspace.sourceControl.createWorktree(await allowedRoot(root), branch, base);
+    const result = await workspace.sourceControl.createWorktree(await allowedRoot(root), branch, base);
+    workspace.roots.add(result.path, root);
+    return result;
+  });
+  handle(IPC.sourceControlWorktrees, async (_event, input: unknown) =>
+    workspace.sourceControl.worktrees(await allowedRoot(workspaceRootSchema.parse(input).root)));
+  // Only a checkout the repository itself lists can become a workspace this way; any other folder needs Choose Directory.
+  handle(IPC.sourceControlOpenWorktree, async (_event, input: unknown) => {
+    const { root, path: requested, adopting } = openWorktreeSchema.parse(input);
+    const listed = await workspace.sourceControl.worktrees(await allowedRoot(root));
+    const wanted = await fs.realpath(requested).catch(() => undefined);
+    const resolved = await Promise.all(listed.map((entry) => fs.realpath(entry.path).catch(() => undefined)));
+    const match = wanted ? listed.find((_entry, index) => resolved[index] === wanted) : undefined;
+    if (!match) throw new Error("That folder is not a worktree of this repository.");
+    workspace.roots.add(match.path, root);
+    // A workspace of its own becoming this worktree: its personal files join the repository's, which it reads from now.
+    if (adopting) await mergePersonalFiles(match.path, root);
+    return match.path;
   });
   handle(IPC.sourceControlBranches, async (_event, input: unknown) =>
     workspace.sourceControl.branches(await allowedRoot(workspaceRootSchema.parse(input).root)));

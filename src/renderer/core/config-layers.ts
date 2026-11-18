@@ -37,6 +37,8 @@ export async function loadConfig(name: ConfigName, root?: string): Promise<Confi
   }
   // A newer read started while this one waited: it has the fresher answer.
   if (reads.get(key) === read) useConfigLayers.setState({ [key]: layers });
+  // A worktree's personal layer is its repository's file, so changes there reload it too.
+  if (layers.localRoot && tracked.has(key)) watchFolder(layers.localRoot);
   return layers;
 }
 
@@ -45,12 +47,22 @@ function track(name: ConfigName, root?: string): void {
   if (tracked.has(key)) return;
   tracked.set(key, { name, root });
   userWatch ??= window.workbench.config.onUserChanged(() => { for (const entry of tracked.values()) void loadConfig(entry.name, entry.root); });
-  if (root && !watching.has(root)) {
-    watching.set(root, watchWorkspace(root, (event) => {
-      if (!event.paths.some((path) => path === "" || WATCHED.some((folder) => path === folder || path.startsWith(`${folder}/`)))) return;
-      for (const entry of tracked.values()) if (entry.root === root) void loadConfig(entry.name, entry.root);
-    }));
-  }
+  if (root) watchFolder(root);
+}
+
+/** Reloads every document read from `folder`: its own, and worktrees' whose personal layer lives there. */
+function watchFolder(folder: string): void {
+  if (watching.has(folder)) return;
+  watching.set(folder, watchWorkspace(folder, (event) => {
+    if (!event.paths.some((path) => path === "" || WATCHED.some((watched) => path === watched || path.startsWith(`${watched}/`)))) return;
+    const current = useConfigLayers.getState();
+    for (const [key, entry] of tracked) if (entry.root === folder || current[key]?.localRoot === folder) void loadConfig(entry.name, entry.root);
+  }));
+}
+
+/** Reads a workspace's documents again: where its layers come from changed (it became a worktree of another workspace). */
+export function reloadConfig(root: string): void {
+  for (const entry of tracked.values()) if (entry.root === root) void loadConfig(entry.name, entry.root);
 }
 
 /** Stops keeping a workspace's documents current (its workspace was removed). */

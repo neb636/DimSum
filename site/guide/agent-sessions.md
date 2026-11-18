@@ -4,7 +4,7 @@ An agent session runs a coding agent's own CLI in a terminal, with DimSum's comp
 
 ## The launcher
 
-A new agent session view opens on the launcher. Choose the **coding harness**, where it should **run** (a new worktree or the local workspace checkout), and a **model**. Then select **Start session**, or **Resume previous…** to pick up a saved conversation from that CLI. See [Your first session](/first-session) for a step-by-step walkthrough.
+A new agent session view opens on the launcher. Choose the **coding harness**, where it should **run** (the checkout it was opened in, or a new worktree that it moves into when it starts), and a **model**. Then select **Start session**, or **Resume previous…** to pick up a saved conversation from that CLI. See [Your first session](/first-session) for a step-by-step walkthrough.
 
 ## The composer
 

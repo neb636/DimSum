@@ -30,7 +30,9 @@ function locate(workspaces: Workspace[], absolute: string): { workspaceId: strin
       if (name) root = `${base}-worktrees${absolute.charAt(base.length + 10)}${name}`;
     } else if (absolute.startsWith(base) && SEPARATOR.test(absolute.charAt(base.length))) root = base;
     if (!root || absolute.length <= root.length + 1) continue;
-    if (!best || root.length > best.root.length) best = { workspaceId: workspace.id, root, path: absolute.slice(root.length + 1).split(SEPARATOR).join("/") };
+    // A worktree open as a workspace of its own wins over its repository, which reaches the same folder by name.
+    const own = root === base;
+    if (!best || root.length > best.root.length || (own && root.length === best.root.length)) best = { workspaceId: workspace.id, root, path: absolute.slice(root.length + 1).split(SEPARATOR).join("/") };
   }
   return best;
 }

@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { assertQaWindowVisibility, qaEnvironment } from "./qa-environment.mjs";
 
-// QA inventory: shell layout and sidebar sessions, launcher with a new worktree, Persona and
+// QA inventory: shell layout and sidebar sessions, the launcher (its New worktree fields; qa-worktrees starts one), Persona and
 // Instructions menus (including a conditional option and a migrated instruction), the three instruction
 // layers (everywhere in ~/.dimsum, shared in .dimsum/instructions.json, read from the older .workbench/ until the first
 // save, only me in .dimsum/instructions.local.json) and their manager, composed
@@ -110,8 +110,10 @@ try {
   assert.equal(await mark(page.locator(".harness-option").filter({ hasText: "Codex" })), "codex");
   assert.equal(await mark(page.getByRole("tab", { name: "Other" })), "codex");
   assert.equal(await mark(page.getByRole("tab", { name: "Untitled" })), "codex");
-  // A new worktree is the default, created from origin's default branch; the picker searches the other branches.
-  await page.waitForFunction(() => document.querySelector('[role="radio"][aria-checked="true"]')?.textContent.includes("New worktree"));
+  // A session runs in its own checkout unless asked; a new worktree starts from origin's default branch, and the picker
+  // searches the other branches.
+  await page.waitForFunction(() => document.querySelector('[role="radio"][aria-checked="true"]')?.textContent.includes("Local checkout"));
+  await page.getByRole("radio", { name: /New worktree/ }).click();
   await page.getByRole("button", { name: "Create from: origin/main" }).click();
   for (const group of ["Remote", "Local"]) await page.getByRole("group", { name: group }).waitFor();
   await page.getByRole("option", { name: "local/qa-branch" }).waitFor();
@@ -127,6 +129,8 @@ try {
   await page.getByRole("textbox", { name: "Branch" }).fill("wb/qa-task");
   assert.match(await page.locator(".launcher-location").innerText(), /repo-worktrees\/wb-qa-task$/);
   await shot("launcher");
+  // This session stays in the checkout; qa-worktrees covers one that starts in a new worktree.
+  await page.getByRole("radio", { name: /Local checkout/ }).click();
 
   // Persona menu: a list select from stored personas, prepended, cleared after send.
   await page.getByRole("button", { name: "Persona", exact: true }).click();
@@ -165,17 +169,15 @@ try {
   await page.getByRole("button", { name: /Effort/ }).click();
   await page.getByRole("option", { name: "high", exact: true }).click();
 
-  // First send creates the worktree, starts the CLI, waits for its input, and delivers the composed prompt.
+  // First send starts the CLI in the checkout, waits for its input, and delivers the composed prompt.
   await prompt().fill("Explain this failure.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await waitFeedback("Prompt handed");
   const [first] = await prompts();
   assert.equal(first.prompt, ["Be concise.", "Explain this failure.", OPEN_PR, WRITE_TESTS, "Focus the new tests on error handling.", "Explain the tradeoffs."].join("\n\n"));
-  assert.equal(first.cwd, join(directory, "repo-worktrees", "wb-qa-task"));
+  assert.equal(first.cwd, repo);
   assert.equal(first.model, "gpt-6-astra");
   assert.equal(first.effort, "high");
-  assert.equal(git("worktree", "list").includes("wb-qa-task"), true);
-  assert.equal(execFileSync("git", ["rev-parse", "HEAD"], { cwd: first.cwd, encoding: "utf8" }), git("rev-parse", "origin/feature/qa-base"));
   assert.equal(await prompt().inputValue(), "");
   await page.getByRole("button", { name: "Persona", exact: true }).waitFor();
   await page.getByRole("button", { name: "Instructions: 4" }).waitFor();
@@ -538,9 +540,9 @@ try {
   await page.getByRole("grid", { name: "Agent session" }).getByRole("row").first().waitFor();
   // The edited app.ts stays open; the tracked.txt diff is a preview tab.
   assert.equal(await page.getByRole("grid", { name: "File" }).getByRole("row").count(), 2);
-  // Resuming stays in the checkout, where the CLI's earlier conversations are, even with a worktree as the default.
+  // Resuming stays in the checkout, where the CLI's earlier conversations are, even with New worktree chosen.
   await page.getByRole("tab", { name: "Other" }).click();
-  await page.waitForFunction(() => document.querySelector('[role="radio"][aria-checked="true"]')?.textContent.includes("New worktree"));
+  await page.getByRole("radio", { name: /New worktree/ }).click();
   const worktrees = git("worktree", "list");
   await page.getByRole("button", { name: "Resume previous…" }).click();
   await page.locator(".terminal-card").waitFor();
@@ -579,8 +581,10 @@ try {
     assert.equal((await launches()).length, expected);
     return (await launches()).at(-1);
   };
+  // Every session here ran in the checkout, so none can safely take "the latest" conversation there: the CLI's picker asks.
   const assertResumed = (launched) => {
-    assert.deepEqual(launched.argv.slice(0, 2), ["resume", "--last"]);
+    assert.equal(launched.argv[0], "resume");
+    assert.equal(launched.argv.includes("--last"), false);
     assert.equal(launched.cwd, first.cwd);
     assert.equal(launched.argv.includes("--model"), false);
   };

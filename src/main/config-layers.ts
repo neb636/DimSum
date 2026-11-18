@@ -60,7 +60,11 @@ async function readDocument(name: ConfigName, file: string, root?: string): Prom
   return { status: "ok", value: result.data, hash, path: file };
 }
 
-export async function readLayers(name: ConfigName, root?: string): Promise<ConfigLayers> {
+/**
+ * `personalRoot` is where the local layer lives (a worktree's are its repository's); it defaults to `root`.
+ * Both must already be granted.
+ */
+export async function readLayers(name: ConfigName, root?: string, personalRoot = root): Promise<ConfigLayers> {
   const layers: ConfigLayers = { user: await readDocument(name, layerFile(name, "user")) };
   if (!root) return layers;
   layers.workspace = await readDocument(name, layerFile(name, "workspace", root), root);
@@ -69,7 +73,9 @@ export async function readLayers(name: ConfigName, root?: string): Promise<Confi
     layers.workspace = await readDocument(name, path.join(root, legacy), root);
     layers.legacyWorkspace = Boolean(layers.workspace);
   }
-  layers.local = await readDocument(name, layerFile(name, "local", root), root);
+  const localRoot = personalRoot ?? root;
+  layers.local = await readDocument(name, layerFile(name, "local", localRoot), localRoot);
+  if (localRoot !== root) layers.localRoot = localRoot;
   return layers;
 }
 

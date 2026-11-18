@@ -16,6 +16,7 @@ import { createId } from "../../core/id";
 import { useWorkbenchStore } from "../../state/workbench-store";
 import { ChevronDownIcon, PlusIcon, TrashIcon } from "../../ui/icons";
 import { Button, IconButton } from "../../ui/controls";
+import { repositoryIdOf } from "../../../shared/workspace-tree";
 
 interface PersonaFormProps {
   persona?: Persona;
@@ -74,7 +75,9 @@ function PersonaForm({ persona, workspaceId, onSave }: PersonaFormProps) {
   );
 }
 
-export function PersonaManager({ workspaceId }: { workspaceId: string }) {
+export function PersonaManager({ workspaceId: openedIn }: { workspaceId: string }) {
+  // Workspace personas belong to the repository, so its worktrees share them.
+  const workspaceId = useWorkbenchStore((state) => repositoryIdOf(state.workspaces, openedIn));
   const personas = useWorkbenchStore((state) => state.personas);
   const upsertPersona = useWorkbenchStore((state) => state.upsertPersona);
   const deletePersona = useWorkbenchStore((state) => state.deletePersona);

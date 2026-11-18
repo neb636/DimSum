@@ -8,16 +8,27 @@ import type {
 } from "../../shared/models";
 import { FILES_WORKSPACE_ID, isFilesWorkspace } from "../../shared/files-workspace";
 import { createId } from "../core/id";
+import { worktreeNameIn } from "../../shared/workspace-tree";
 
 interface WorkbenchStore extends PersistedState {
   isHydrated: boolean;
   persistenceError?: string;
   hydrate: () => Promise<void>;
-  addWorkspace: (path: string) => string;
+  /**
+   * Adds a folder (or selects it when it's already open). A folder that is a worktree of an open workspace is listed
+   * under it; `parentId` says so outright. `initialView` is the tab it opens with: an agent session unless told otherwise.
+   */
+  addWorkspace: (path: string, options?: { parentId?: string; name?: string; initialView?: "agent" | "terminal" | null }) => string;
   /** The built-in Files workspace (files opened from outside every workspace), created the first time it's needed. */
   ensureFilesWorkspace: () => string;
   /** Moves a view to another workspace, as its active tab. */
   transferView: (viewId: string, toWorkspaceId: string, patch?: Record<string, unknown>) => void;
+  /**
+   * Makes a workspace open on its own a worktree of `repositoryId`. Its worktrees come along, and what it kept for itself
+   * (workspace personas, stored instructions, instructions turned off) goes to the repository, which worktrees share.
+   */
+  adoptWorktree: (workspaceId: string, repositoryId: string) => void;
+  /** Removes a workspace and its worktrees. */
   removeWorkspace: (workspaceId: string) => void;
   selectWorkspace: (workspaceId: string) => void;
   setWorkspaceIcon: (workspaceId: string, icon: string | undefined) => void;
@@ -69,26 +80,29 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => ({
     const persisted = await window.workbench.persistence.load();
     set({ ...persisted, isHydrated: true });
   },
-  addWorkspace: (path) => {
-    const existing = get().workspaces.find((workspace) => !isFilesWorkspace(workspace) && workspace.path === path);
+  addWorkspace: (path, options = {}) => {
+    const folders = get().workspaces.filter((workspace) => !isFilesWorkspace(workspace));
+    const existing = folders.find((workspace) => workspace.path === path);
     if (existing) {
       set({ activeWorkspaceId: existing.id });
       return existing.id;
     }
     const workspaceId = createId("workspace");
-    const initialView: WorkbenchView = {
-      id: createId("view"),
-      type: "agent",
-      workspaceId,
-      title: "Untitled",
-      state: { autoTitle: true },
-    };
+    const parent = options.parentId !== undefined
+      ? folders.find((workspace) => workspace.id === options.parentId)
+      : folders.find((workspace) => worktreeNameIn(workspace.path, path));
+    const repository = parent?.parentId ? folders.find((workspace) => workspace.id === parent.parentId) : parent;
+    const kind = options.initialView === undefined ? "agent" : options.initialView;
+    const initialView: WorkbenchView | undefined = kind === "agent"
+      ? { id: createId("view"), type: "agent", workspaceId, title: "Untitled", state: { autoTitle: true } }
+      : kind === "terminal" ? { id: createId("view"), type: "terminal", workspaceId, title: "Terminal", state: { providerId: "terminal.local" } } : undefined;
     const workspace: Workspace = {
       id: workspaceId,
-      name: workspaceName(path),
+      name: options.name ?? workspaceName(path),
       path,
-      views: [initialView],
-      activeViewId: initialView.id,
+      ...(repository ? { parentId: repository.id } : {}),
+      views: initialView ? [initialView] : [],
+      activeViewId: initialView?.id,
     };
     set((state) => ({
       workspaces: [...state.workspaces, workspace],
@@ -117,13 +131,29 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => ({
       });
       return { workspaces: dropEmptyFiles(workspaces), activeWorkspaceId: toWorkspaceId };
     }),
+  adoptWorktree: (workspaceId, repositoryId) =>
+    set((state) => {
+      const adopted = state.workspaces.find((workspace) => workspace.id === workspaceId);
+      if (!adopted || workspaceId === repositoryId || adopted.parentId === repositoryId) return {};
+      const off = adopted.disabledInstructionIds ?? [];
+      const moving = new Set([workspaceId, ...state.workspaces.filter((workspace) => workspace.parentId === workspaceId).map((workspace) => workspace.id)]);
+      const repoint = <T extends { workspaceId?: string }>(item: T): T => item.workspaceId === workspaceId ? { ...item, workspaceId: repositoryId } : item;
+      return {
+        workspaces: state.workspaces.map((workspace) => moving.has(workspace.id) ? { ...workspace, parentId: repositoryId }
+          : workspace.id === repositoryId && off.length ? { ...workspace, disabledInstructionIds: [...new Set([...(workspace.disabledInstructionIds ?? []), ...off])] }
+            : workspace),
+        personas: state.personas.map(repoint),
+        instructionOptions: state.instructionOptions.map(repoint),
+      };
+    }),
   removeWorkspace: (workspaceId) =>
     set((state) => {
-      const workspaces = state.workspaces.filter((workspace) => workspace.id !== workspaceId);
-      return {
-        workspaces,
-        activeWorkspaceId: state.activeWorkspaceId === workspaceId ? workspaces[0]?.id : state.activeWorkspaceId,
-      };
+      const removed = state.workspaces.find((workspace) => workspace.id === workspaceId);
+      const workspaces = state.workspaces.filter((workspace) => workspace.id !== workspaceId && workspace.parentId !== workspaceId);
+      const stillActive = workspaces.some((workspace) => workspace.id === state.activeWorkspaceId);
+      // Closing a worktree goes back to its repository's local checkout.
+      const fallback = workspaces.find((workspace) => workspace.id === removed?.parentId)?.id ?? workspaces[0]?.id;
+      return { workspaces, activeWorkspaceId: stillActive ? state.activeWorkspaceId : fallback };
     }),
   selectWorkspace: (workspaceId) => set({ activeWorkspaceId: workspaceId }),
   setWorkspaceIcon: (workspaceId, icon) => set((state) => ({

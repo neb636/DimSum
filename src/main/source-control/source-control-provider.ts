@@ -1,7 +1,7 @@
 import path from "node:path";
 import type {
   BaseBranches, DiffBase, SearchOptions, SearchResult, SourceControlAction, SourceControlBranchAction, SourceControlCommitFile, SourceControlCommitFileContents,
-  SourceControlCommitOptions, SourceControlFeature, SourceControlHistory, SourceControlStash, SourceControlStashAction, SourceControlStatus, WorktreeResult,
+  SourceControlCommitOptions, SourceControlFeature, SourceControlHistory, SourceControlStash, SourceControlStashAction, SourceControlStatus, WorktreeResult, ExistingWorktree,
 } from "../../shared/models";
 import { worktreeContainer } from "../workspace-files";
 
@@ -43,6 +43,8 @@ export interface SourceControlProvider {
   stashAction?: (root: string, action: SourceControlStashAction, id: string) => Promise<void>;
   /** Starts from `base` (a ref from `baseBranches`), or the current commit without one. */
   createWorktree: (root: string, branch: string, target: string, base?: string) => Promise<WorktreeResult>;
+  /** The repository's other checkouts, the folder asked about excluded. */
+  worktrees?: (root: string) => Promise<ExistingWorktree[]>;
   branches: (root: string) => Promise<string[]>;
   /** Every branch a worktree can start from and which is the default; `refresh` first updates from the remote, best effort. */
   baseBranches: (root: string, refresh?: boolean) => Promise<BaseBranches>;
@@ -199,6 +201,11 @@ export class SourceControlService {
     const provider = await this.require(root);
     const target = path.join(worktreeContainer(root), branch.replace(/[^A-Za-z0-9._-]+/g, "-"));
     return provider.createWorktree(root, branch, target, base);
+  }
+
+  async worktrees(root: string): Promise<ExistingWorktree[]> {
+    const provider = await this.providerFor(root);
+    return provider?.worktrees ? provider.worktrees(root) : [];
   }
 
   private async require(root: string): Promise<SourceControlProvider> {

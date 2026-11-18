@@ -6,7 +6,20 @@ The DimSum window has four parts: the workspaces on the left, the open views in 
 
 The left sidebar lists your workspaces. Each one is a folder, and its agent sessions are listed under it with their status, harness and branch.
 
-Right-click a workspace to create a new view in it, reveal its folder, open it in a terminal, copy its path, give it a custom icon, or remove it. Removing a workspace takes it out of DimSum and leaves the folder alone.
+Right-click a workspace to create a new view in it, reveal its folder, open it in a terminal, copy its path, give it a custom icon, or remove it. Removing a workspace takes it out of DimSum, with its worktrees, and leaves every folder alone.
+
+### Local and worktrees
+
+A workspace that is a Git repository lists its checkouts under it:
+
+- **Local** is the workspace folder itself.
+- Each **worktree** is another checkout of the repository on its own branch, in its own folder next to the workspace (`<workspace>-worktrees/`).
+
+Each checkout has its own tabs, so selecting Local or a worktree shows only what is open there. Terminals, the Files panel, Source control and new agent sessions all work in the checkout you are looking at, so you can open a terminal in a worktree to run a command without touching your local checkout.
+
+To make a worktree, select the **+** on the workspace's row (or **New Worktree…** in its menu). Name the branch, pick the branch to create it from, and choose what it opens with: an agent session, a terminal or nothing. The same dialog lists the repository's other worktrees that aren't in the sidebar, including ones made outside DimSum, so you can open them.
+
+Right-click a worktree and choose **Close Worktree** to take it out of the sidebar. Its open views close, but its folder and branch stay on disk, and you can reopen it from the same dialog. Worktrees share the workspace's personas, your personal instructions and settings, and which instructions you turned off. Instructions shared in the repository come from the worktree's own branch.
 
 Files you open on their own, from Finder or with <kbd>⌘</kbd><kbd>O</kbd>, are collected under a separate entry that only holds files. The **Settings** button is at the bottom of the sidebar.
 

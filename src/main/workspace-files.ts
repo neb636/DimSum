@@ -80,12 +80,38 @@ export class WorkspaceRoots {
     return [...this.files].some((file) => path.dirname(file) === folder);
   }
 
-  replace(paths: string[]): void {
-    this.roots = new Set(paths.map((item) => path.resolve(item)));
+  /** Each worktree's repository folder, by the worktree's folder. */
+  private parents = new Map<string, string>();
+
+  /** The workspace folders, each with its repository's folder when it is a worktree of another workspace. */
+  replace(entries: { path: string; parentPath?: string }[]): void {
+    this.roots = new Set(entries.map((item) => path.resolve(item.path)));
+    this.parents = new Map(entries.flatMap((item) => item.parentPath ? [[path.resolve(item.path), path.resolve(item.parentPath)] as const] : []));
   }
 
-  add(root: string): void {
+  /**
+   * Where a workspace's personal (never committed) settings live: a worktree shares its repository's, since a fresh
+   * checkout has none of its own. Any other root keeps its own.
+   */
+  personalRoot(root: string): string {
+    const parent = this.parents.get(path.resolve(root));
+    return parent && this.roots.has(parent) ? parent : root;
+  }
+
+  /**
+   * The repository a folder is a worktree of when it sits in a workspace's `<workspace>-worktrees/` (the renderer lists
+   * it under that workspace the same way), so its personal layer is known before anything reads it.
+   */
+  repositoryOf(folder: string): string | undefined {
+    const container = path.dirname(path.resolve(folder));
+    const repository = [...this.roots].find((root) => worktreeContainer(root) === container);
+    return repository ? this.parents.get(repository) ?? repository : undefined;
+  }
+
+  /** `parentPath`: the repository folder when `root` is one of its worktrees. */
+  add(root: string, parentPath?: string): void {
     this.roots.add(path.resolve(root));
+    if (parentPath) this.parents.set(path.resolve(root), path.resolve(parentPath));
   }
 
   isAllowed(root: string): boolean {
