@@ -1,3 +1,4 @@
+import { realpathSync } from "node:fs";
 import type { AgentModelListing, AgentProviderAdapter, AgentSubmission, ScreenObservation } from "../agent-provider";
 import { codexPlanMode, detectCliScreen, pasteChunks } from "./cli-screen";
 import type { AgentModelChoice, AgentModelSettings, AgentPromptRequest, AgentResume } from "../../shared/models";
@@ -28,6 +29,12 @@ export class CodexAgentProvider implements AgentProviderAdapter {
     if (resume?.kind === "id") return ["resume", resume.id, "--no-alt-screen"];
     if (resume?.kind === "latest") return ["resume", "--last", "--no-alt-screen"];
     return resume ? ["resume", "--no-alt-screen"] : ["--no-alt-screen"];
+  }
+  // A config override for this launch only; Codex's config file is not written. The key is an inline table because
+  // `-c` splits a dotted key on every dot, including those inside a quoted path. A JSON string is a valid TOML string.
+  trustFolder(folder: string) {
+    try { return ["-c", `projects={${JSON.stringify(realpathSync(folder))}={trust_level="trusted"}}`]; }
+    catch { return []; }
   }
   modelArgs(settings: AgentModelSettings) {
     // Plan mode has its own effort setting; without it, switching to Plan changes the chosen effort.

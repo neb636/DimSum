@@ -83,6 +83,8 @@ export class AgentSessionManager {
     private readonly catalogue = new AgentModelCatalogue(providers),
     /** Arguments other features add to every agent session they apply to, after the adapter's own. */
     private readonly launchArgs: LaunchArgsContributor[] = [],
+    /** True when the person trusts this folder in DimSum; the CLI is then told to trust it too. */
+    private readonly folderTrusted: (cwd: string) => boolean = () => false,
   ) {}
 
   discover(): AgentProviderInfo[] {
@@ -114,6 +116,7 @@ export class AgentSessionManager {
       }
       args.push(...provider.modelArgs(options.settings));
     }
+    if (provider.trustFolder && this.folderTrusted(options.workspacePath)) args.push(...provider.trustFolder(options.workspacePath));
     for (const contribute of this.launchArgs) args.push(...contribute(provider.id, options.workspacePath));
     const terminal = new Terminal({ cols: options.cols, rows: options.rows, scrollback: 2000, allowProposedApi: true });
     const serialize = new SerializeAddon();

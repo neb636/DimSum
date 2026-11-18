@@ -44,6 +44,11 @@ export interface AgentProviderAdapter {
   conversationArgs?: (id: string) => string[];
   /** Launch arguments that let a CLI which asks before reading outside where it runs read this folder (prompt attachments). */
   readFolderArgs?: (folder: string) => string[];
+  /**
+   * Prepares a launch in a folder the person trusts in DimSum, so the CLI doesn't ask whether to trust it again.
+   * Returns launch arguments. Best effort: when it can't, the CLI asks in the terminal as usual.
+   */
+  trustFolder?: (folder: string) => string[];
   /** Models offered for new conversations until the CLI's own list has been read, or when it can't be. */
   models?: AgentModelChoice[];
   listModels?: AgentModelListing;

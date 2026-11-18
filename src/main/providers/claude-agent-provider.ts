@@ -1,4 +1,5 @@
 import type { AgentModelListing, AgentProviderAdapter, AgentSubmission, ScreenObservation } from "../agent-provider";
+import { acceptClaudeFolderTrust } from "./claude-config";
 import { claudeMode, detectCliScreen, pasteChunks } from "./cli-screen";
 import type { AgentModelChoice, AgentModelSettings, AgentPromptRequest, AgentResume } from "../../shared/models";
 
@@ -36,6 +37,8 @@ export class ClaudeAgentProvider implements AgentProviderAdapter {
   }
   conversationArgs(id: string) { return ["--session-id", id]; }
   readFolderArgs(folder: string) { return ["--add-dir", folder]; }
+  // Claude has no launch flag for folder trust; it keeps the answer in its own state file.
+  trustFolder(folder: string) { acceptClaudeFolderTrust(folder); return []; }
   modelArgs(settings: AgentModelSettings) { return ["--model", settings.model, ...(settings.effort ? ["--effort", settings.effort] : [])]; }
   // --safe-mode leaves the user's hooks, MCP servers and instructions out. Not --bare: it skips the keychain login.
   readonly oneShot = {

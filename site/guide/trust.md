@@ -8,10 +8,12 @@ Some things DimSum does run code that comes from the repository, not from DimSum
 
 Only trust repositories you know. DimSum remembers your answer for that folder and for its worktrees in `<workspace>-worktrees/`.
 
-Trust in DimSum doesn't change what the agent CLIs may do. Claude Code and Codex keep their own approval prompts, and those still decide what the agent can run.
+Claude Code and Codex each ask whether to trust a folder the first time they start in it. When you have trusted a workspace in DimSum, an agent session started in it or in one of its worktrees skips that question: DimSum marks the folder as trusted for Claude Code in its `~/.claude.json` (or `$CLAUDE_CONFIG_DIR/.claude.json`), and starts Codex with a one-off setting that trusts the folder without writing to Codex's config. Folders you haven't trusted in DimSum still get the CLI's own question.
+
+Otherwise trust in DimSum doesn't change what the agent CLIs may do. Their approval prompts for commands and edits still decide what the agent can run.
 
 ## Resetting trust
 
-**Settings ▸ General ▸ Reset workspace execution trust** forgets every workspace you have trusted and stops their workspace extensions. Running agent sessions keep their own permissions. DimSum asks again the next time it needs trust.
+**Settings ▸ General ▸ Reset workspace execution trust** forgets every workspace you have trusted and stops their workspace extensions. Running agent sessions keep their own permissions, and folders already marked as trusted for Claude Code stay trusted there. DimSum asks again the next time it needs trust.
 
 Your own extensions in `~/.dimsum/extensions/` don't need trust, because they are yours. See [Extensions](/extend/).

@@ -37,7 +37,7 @@ const attachments = new PromptAttachments(() => path.join(app.getPath("userData"
 const agentProviders = [new CodexAgentProvider(), new ClaudeAgentProvider()];
 const agentModels = new AgentModelCatalogue(agentProviders);
 const aiUsage = createAiUsage(agentProviders);
-const agentSessionManager = new AgentSessionManager(agentProviders, undefined, (viewId) => attachments.folderFor(viewId), agentModels, [aiUsage.launchArgs]);
+const agentSessionManager = new AgentSessionManager(agentProviders, undefined, (viewId) => attachments.folderFor(viewId), agentModels, [aiUsage.launchArgs], isWorkspaceTrusted);
 const internalAi = new InternalAiService(agentProviders, () => path.join(app.getPath("userData"), "internal-ai"));
 const resources = new ResourceMonitor([ptyManager, agentSessionManager]);
 const roots = new WorkspaceRoots();
