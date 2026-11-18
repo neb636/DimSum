@@ -37,6 +37,7 @@ git("commit", "--quiet", "-m", "Initial commit");
 git("worktree", "add", "--quiet", "-b", "wb/legacy", join(container, "wb-legacy"));
 git("worktree", "add", "--quiet", "-b", "opened", join(container, "opened"));
 git("worktree", "add", "--quiet", "-b", "elsewhere", join(directory, "elsewhere"));
+git("worktree", "add", "--quiet", "-b", "added", join(container, "added"));
 // The "opened" branch moves ahead, so a worktree created from it is visibly not main.
 await writeFile(join(container, "opened", "two.txt"), "two\n");
 execFileSync("git", ["add", "."], { cwd: join(container, "opened") });
@@ -204,16 +205,25 @@ try {
   await page.getByRole("button", { name: /^Instructions/ }).click();
   await page.getByRole("switch", { name: /Old personal/ }).waitFor();
   await page.keyboard.press("Escape");
+
+  // Add workspace on a folder in <repo>-worktrees/ lists it as a worktree, reading the repository's personal layer at once.
+  await app.evaluate(({ dialog }, chosen) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [chosen] }); }, join(container, "added"));
+  await page.getByRole("button", { name: "Add workspace" }).click();
+  await row("added").waitFor();
+  assert.equal(await level("added"), "2");
+  await page.getByRole("button", { name: /^Instructions/ }).click();
+  await page.getByRole("switch", { name: /Old personal/ }).waitFor();
+  await page.keyboard.press("Escape");
   assert.equal(await page.locator(".confirm-warning[role=alert]").count(), 0, "the state saved");
 
   // Saved with each worktree under its repository, and restored that way.
-  await until(async () => (await savedState()).workspaces.filter((item) => item.parentId === "qa").length === 5, "the state to save");
+  await until(async () => (await savedState()).workspaces.filter((item) => item.parentId === "qa").length === 6, "the state to save");
   const saved = await savedState();
   assert.equal(saved.personas.find((item) => item.id === "old-persona").workspaceId, "qa");
   assert(saved.workspaces.find((item) => item.id === "qa").disabledInstructionIds.includes("turned-off-there"));
   await app.close();
   await launch();
-  for (const name of ["Local", "wb-legacy", "opened", "qa/terminal", sessionBranch, "elsewhere"]) assert.equal(await level(name), "2", name);
+  for (const name of ["Local", "wb-legacy", "opened", "qa/terminal", sessionBranch, "elsewhere", "added"]) assert.equal(await level(name), "2", name);
   await shot("7-restored");
   // The moved session reopens its conversation in its worktree, the only session there.
   const before = (await readFile(launches, "utf8")).trim().split("\n").length;

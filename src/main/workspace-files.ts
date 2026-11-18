@@ -98,6 +98,16 @@ export class WorkspaceRoots {
     return parent && this.roots.has(parent) ? parent : root;
   }
 
+  /**
+   * The repository a folder is a worktree of when it sits in a workspace's `<workspace>-worktrees/` (the renderer lists
+   * it under that workspace the same way), so its personal layer is known before anything reads it.
+   */
+  repositoryOf(folder: string): string | undefined {
+    const container = path.dirname(path.resolve(folder));
+    const repository = [...this.roots].find((root) => worktreeContainer(root) === container);
+    return repository ? this.parents.get(repository) ?? repository : undefined;
+  }
+
   /** `parentPath`: the repository folder when `root` is one of its worktrees. */
   add(root: string, parentPath?: string): void {
     this.roots.add(path.resolve(root));
