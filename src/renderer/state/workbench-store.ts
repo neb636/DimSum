@@ -23,6 +23,11 @@ interface WorkbenchStore extends PersistedState {
   ensureFilesWorkspace: () => string;
   /** Moves a view to another workspace, as its active tab. */
   transferView: (viewId: string, toWorkspaceId: string, patch?: Record<string, unknown>) => void;
+  /**
+   * Makes a workspace open on its own a worktree of `repositoryId`. Its worktrees come along, and what it kept for itself
+   * (workspace personas, stored instructions, instructions turned off) goes to the repository, which worktrees share.
+   */
+  adoptWorktree: (workspaceId: string, repositoryId: string) => void;
   /** Removes a workspace and its worktrees. */
   removeWorkspace: (workspaceId: string) => void;
   selectWorkspace: (workspaceId: string) => void;
@@ -125,6 +130,21 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => ({
         return workspace.id === toWorkspaceId ? { ...workspace, views: [...workspace.views, moved], activeViewId: viewId } : workspace;
       });
       return { workspaces: dropEmptyFiles(workspaces), activeWorkspaceId: toWorkspaceId };
+    }),
+  adoptWorktree: (workspaceId, repositoryId) =>
+    set((state) => {
+      const adopted = state.workspaces.find((workspace) => workspace.id === workspaceId);
+      if (!adopted || workspaceId === repositoryId || adopted.parentId === repositoryId) return {};
+      const off = adopted.disabledInstructionIds ?? [];
+      const moving = new Set([workspaceId, ...state.workspaces.filter((workspace) => workspace.parentId === workspaceId).map((workspace) => workspace.id)]);
+      const repoint = <T extends { workspaceId?: string }>(item: T): T => item.workspaceId === workspaceId ? { ...item, workspaceId: repositoryId } : item;
+      return {
+        workspaces: state.workspaces.map((workspace) => moving.has(workspace.id) ? { ...workspace, parentId: repositoryId }
+          : workspace.id === repositoryId && off.length ? { ...workspace, disabledInstructionIds: [...new Set([...(workspace.disabledInstructionIds ?? []), ...off])] }
+            : workspace),
+        personas: state.personas.map(repoint),
+        instructionOptions: state.instructionOptions.map(repoint),
+      };
     }),
   removeWorkspace: (workspaceId) =>
     set((state) => {

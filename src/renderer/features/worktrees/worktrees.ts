@@ -84,11 +84,19 @@ export async function createWorktree({ workspaceId, branch, base, open = "agent"
   return { workspaceId: id, path: created.path };
 }
 
-/** Lists one of the repository's existing checkouts (from `sourceControl.worktrees`) under it. */
+const samePath = (a: string, b: string) => a.replace(/[\\/]+$/, "") === b.replace(/[\\/]+$/, "");
+
+/**
+ * Lists one of the repository's existing checkouts (from `sourceControl.worktrees`) under it. One already open as a
+ * workspace of its own becomes this worktree, keeping its tabs.
+ */
 export async function openWorktree(workspaceId: string, path: string, branch?: string): Promise<string> {
   const repository = repositoryFor(workspaceId);
-  const granted = await window.workbench.sourceControl.openWorktree(repository.path, path);
-  const id = useWorkbenchStore.getState().addWorkspace(granted, { parentId: repository.id, ...(branch ? { name: branch } : {}), initialView: null });
+  const standalone = useWorkbenchStore.getState().workspaces.find((item) => !isFilesWorkspace(item) && !item.parentId && item.id !== repository.id && samePath(item.path, path));
+  const granted = await window.workbench.sourceControl.openWorktree(repository.path, path, Boolean(standalone));
+  const store = useWorkbenchStore.getState();
+  if (standalone) store.adoptWorktree(standalone.id, repository.id);
+  const id = standalone?.id ?? store.addWorkspace(granted, { parentId: repository.id, ...(branch ? { name: branch } : {}), initialView: null });
   show(id);
   return id;
 }

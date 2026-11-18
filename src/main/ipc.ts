@@ -1,4 +1,5 @@
 import { imagePreview } from "./image-previews";
+import { mergePersonalFiles } from "./worktree-adoption";
 import { app, dialog, ipcMain, shell, Menu, type WebContents } from "electron";
 import { promises as fs } from "node:fs";
 import { FileOperations } from "./file-operations";
@@ -379,13 +380,15 @@ export function registerIpc(ptyManager: PtyManager, agentSessionManager: AgentSe
     workspace.sourceControl.worktrees(await allowedRoot(workspaceRootSchema.parse(input).root)));
   // Only a checkout the repository itself lists can become a workspace this way; any other folder needs Choose Directory.
   handle(IPC.sourceControlOpenWorktree, async (_event, input: unknown) => {
-    const { root, path: requested } = openWorktreeSchema.parse(input);
+    const { root, path: requested, adopting } = openWorktreeSchema.parse(input);
     const listed = await workspace.sourceControl.worktrees(await allowedRoot(root));
     const wanted = await fs.realpath(requested).catch(() => undefined);
     const resolved = await Promise.all(listed.map((entry) => fs.realpath(entry.path).catch(() => undefined)));
     const match = wanted ? listed.find((_entry, index) => resolved[index] === wanted) : undefined;
     if (!match) throw new Error("That folder is not a worktree of this repository.");
     workspace.roots.add(match.path, root);
+    // A workspace of its own becoming this worktree: its personal files join the repository's, which it reads from now.
+    if (adopting) await mergePersonalFiles(match.path, root);
     return match.path;
   });
   handle(IPC.sourceControlBranches, async (_event, input: unknown) =>

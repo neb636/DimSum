@@ -45,6 +45,9 @@ execFileSync("git", ["commit", "--quiet", "-m", "Ahead"], { cwd: join(container,
 await mkdir(join(container, "opened", ".dimsum"));
 const oldInstruction = { id: "old-personal", kind: "toggle", label: "Old personal", defaultOn: true, text: "Kept in the worktree." };
 await writeFile(join(container, "opened", ".dimsum", "instructions.local.json"), JSON.stringify({ version: 1, instructions: [oldInstruction] }));
+// "elsewhere" is open as a workspace of its own (Choose Directory), with a personal setting of its own.
+await mkdir(join(directory, "elsewhere", ".dimsum"));
+await writeFile(join(directory, "elsewhere", ".dimsum", "settings.local.json"), JSON.stringify({ version: 1, extensions: { disabled: ["workspace:qa-off"] } }));
 await mkdir(join(repo, ".dimsum"));
 await writeFile(join(repo, ".dimsum", "instructions.local.json"), JSON.stringify({ version: 1, instructions: [] }));
 await writeFile(executable, `#!/bin/sh\nexec ${shellQuote(process.execPath)} ${shellQuote(resolve("scripts/fixtures/composer-cli.mjs"))} "$@"\n`, { mode: 0o755 });
@@ -57,6 +60,9 @@ await writeFile(join(directory, "workbench-state.json"), JSON.stringify({
     ] },
     { id: "old", name: "opened", path: join(container, "opened"), disabledInstructionIds: ["turned-off-there"], activeViewId: "old-terminal", views: [
       { id: "old-terminal", workspaceId: "old", type: "terminal", title: "Terminal", state: { providerId: "terminal.local" } },
+    ] },
+    { id: "standalone", name: "elsewhere", path: join(directory, "elsewhere"), activeViewId: "standalone-terminal", views: [
+      { id: "standalone-terminal", workspaceId: "standalone", type: "terminal", title: "Elsewhere shell", state: { providerId: "terminal.local" } },
     ] },
   ],
   activeWorkspaceId: "qa", personas: [{ id: "old-persona", name: "Old persona", description: "", instructions: "Be brief.", scope: "workspace", workspaceId: "old" }],
@@ -86,7 +92,8 @@ const until = async (check, what) => {
   assert.fail(`Timed out waiting for: ${what}`);
 };
 const tree = () => page.getByRole("treegrid", { name: "Workspaces" });
-const row = (name) => tree().getByRole("row", { name, exact: true });
+// The repository's rows come first; "elsewhere", open on its own at the start, has a Local row of its own until adopted.
+const row = (name) => tree().getByRole("row", { name, exact: true }).first();
 const level = (name) => row(name).getAttribute("aria-level");
 const tab = (name) => page.getByRole("tab", { name, exact: true });
 const tabNames = () => page.getByRole("tablist", { name: "Open views" }).getByRole("tab").evaluateAll((tabs) => tabs.map((item) => item.getAttribute("aria-label")));
@@ -182,8 +189,15 @@ try {
   await dialog.getByRole("button", { name: "Open qa/terminal" }).click();
   await row("qa/terminal").waitFor();
   await row("repo").getByRole("button", { name: "New worktree" }).click();
+  // Open on its own until now: it moves under the repository with its tabs, and its personal settings join the repository's.
+  assert.equal(await level("elsewhere"), "1");
   await dialog.getByRole("button", { name: "Open elsewhere" }).click();
-  await row("elsewhere").waitFor();
+  await until(async () => (await level("elsewhere")) === "2", "the open workspace to become a worktree");
+  assert.equal(await tree().getByRole("row", { name: "elsewhere", exact: true }).count(), 1);
+  assert.equal(await tree().getByRole("row", { name: "Local", exact: true }).count(), 1);
+  assert.deepEqual(await tabNames(), ["Elsewhere shell"]);
+  const repoSettings = JSON.parse(await readFile(join(repo, ".dimsum", "settings.local.json"), "utf8"));
+  assert.deepEqual(repoSettings.extensions.disabled, ["workspace:qa-off"]);
   assert.equal(await page.locator(".confirm-warning[role=alert]").count(), 0, "the state saved");
 
   // Saved with each worktree under its repository, and restored that way.

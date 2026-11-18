@@ -530,8 +530,11 @@ export interface WorkbenchApi {
     createWorktree: (root: string, branch: string, base?: string) => Promise<WorktreeResult>;
     /** The repository's other checkouts; empty where the source control has no such idea. */
     worktrees: (root: string) => Promise<ExistingWorktree[]>;
-    /** Lets one of `worktrees(root)` be opened as a worktree workspace of `root`, wherever it is on disk. */
-    openWorktree: (root: string, path: string) => Promise<string>;
+    /**
+     * Lets one of `worktrees(root)` be opened as a worktree workspace of `root`, wherever it is on disk. `adopting`: it
+     * was open as a workspace of its own, so its personal files are added to the repository's.
+     */
+    openWorktree: (root: string, path: string, adopting?: boolean) => Promise<string>;
     branches: (root: string) => Promise<string[]>;
     /** With `refresh`, first updates from the remote (best effort). */
     baseBranches: (root: string, refresh?: boolean) => Promise<BaseBranches>;

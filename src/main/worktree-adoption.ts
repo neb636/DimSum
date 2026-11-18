@@ -18,29 +18,33 @@ export function newlyAdopted(saved: unknown, state: PersistedState): PersistedSt
 export async function mergeAdoptedPersonalFiles(state: PersistedState, adopted: PersistedState["workspaces"]): Promise<void> {
   for (const worktree of adopted) {
     const repository = state.workspaces.find((item) => item.id === worktree.parentId);
-    if (!repository?.path || !worktree.path) continue;
-    try {
-      const own = (await readLayers("instructions", worktree.path)).local;
-      const theirs = (await readLayers("instructions", repository.path)).local;
-      const adding = own?.status === "ok" ? (own.value as { instructions: PromptOptionDefinition[] }).instructions : [];
-      if (adding.length && theirs?.status !== "invalid") {
-        const existing = theirs?.status === "ok" ? (theirs.value as { instructions: PromptOptionDefinition[] }).instructions : [];
-        const ids = new Set(existing.map((option) => option.id));
-        const added = adding.filter((option) => !ids.has(option.id));
-        if (added.length) await writeLayer("instructions", "local", repository.path, { version: 1, instructions: [...existing, ...added] }, theirs?.hash ?? null);
-      }
-      const ownSettings = (await readLayers("settings", worktree.path)).local;
-      const theirSettings = (await readLayers("settings", repository.path)).local;
-      const off = ownSettings?.status === "ok" ? (ownSettings.value as DimsumSettings).extensions?.disabled ?? [] : [];
-      if (off.length && theirSettings?.status !== "invalid") {
-        const current = theirSettings?.status === "ok" ? theirSettings.value as DimsumSettings : { version: 1 as const };
-        const disabled = [...new Set([...(current.extensions?.disabled ?? []), ...off])];
-        if (disabled.length !== (current.extensions?.disabled ?? []).length) {
-          await writeLayer("settings", "local", repository.path, { ...current, extensions: { ...current.extensions, disabled } }, theirSettings?.hash ?? null);
-        }
-      }
-    } catch (error) {
-      console.warn("Could not carry a worktree's personal settings over to its repository.", String(error));
+    if (repository?.path && worktree.path) await mergePersonalFiles(worktree.path, repository.path);
+  }
+}
+
+/** Adds what one folder kept in its personal files to another's (both already granted). */
+export async function mergePersonalFiles(worktreePath: string, repositoryPath: string): Promise<void> {
+  try {
+    const own = (await readLayers("instructions", worktreePath)).local;
+    const theirs = (await readLayers("instructions", repositoryPath)).local;
+    const adding = own?.status === "ok" ? (own.value as { instructions: PromptOptionDefinition[] }).instructions : [];
+    if (adding.length && theirs?.status !== "invalid") {
+      const existing = theirs?.status === "ok" ? (theirs.value as { instructions: PromptOptionDefinition[] }).instructions : [];
+      const ids = new Set(existing.map((option) => option.id));
+      const added = adding.filter((option) => !ids.has(option.id));
+      if (added.length) await writeLayer("instructions", "local", repositoryPath, { version: 1, instructions: [...existing, ...added] }, theirs?.hash ?? null);
     }
+    const ownSettings = (await readLayers("settings", worktreePath)).local;
+    const theirSettings = (await readLayers("settings", repositoryPath)).local;
+    const off = ownSettings?.status === "ok" ? (ownSettings.value as DimsumSettings).extensions?.disabled ?? [] : [];
+    if (off.length && theirSettings?.status !== "invalid") {
+      const current = theirSettings?.status === "ok" ? theirSettings.value as DimsumSettings : { version: 1 as const };
+      const disabled = [...new Set([...(current.extensions?.disabled ?? []), ...off])];
+      if (disabled.length !== (current.extensions?.disabled ?? []).length) {
+        await writeLayer("settings", "local", repositoryPath, { ...current, extensions: { ...current.extensions, disabled } }, theirSettings?.hash ?? null);
+      }
+    }
+  } catch (error) {
+    console.warn("Could not carry a worktree's personal settings over to its repository.", String(error));
   }
 }
