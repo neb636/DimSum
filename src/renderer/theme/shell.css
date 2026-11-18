@@ -122,6 +122,26 @@
   border-radius: var(--wb-radius-md);
 }
 .session-row.is-current .session-row-content { background: var(--wb-bg-selected); }
+/* A repository's checkouts: Local and each worktree, one level in, each with its sessions below it. */
+.checkout-row-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 18px;
+  padding: 4px 4px 4px 2px;
+  border-radius: var(--wb-radius-md);
+}
+.checkout-row[data-hovered] .checkout-row-content { background: var(--wb-bg-hover); }
+.checkout-row[data-focus-visible] .checkout-row-content { box-shadow: inset 0 0 0 2px var(--wb-focus-ring); }
+.checkout-row.is-active .checkout-row-content { background: var(--wb-bg-selected); }
+.checkout-row .workspace-copy strong { font-weight: 500; }
+.checkout-row.is-active .workspace-copy strong { font-weight: 600; }
+.checkout-icon { display: grid; place-items: center; flex: none; width: 20px; height: 20px; border-radius: var(--wb-radius-xs); color: var(--wb-text-secondary); }
+.checkout-row.is-active .checkout-icon { color: var(--wb-text-primary); }
+.session-row[aria-level="3"] .session-row-content { margin-left: 44px; }
+.workspace-add-worktree { width: 22px; height: 22px; color: var(--wb-text-muted); }
+.workspace-add-worktree[data-hovered] { background: var(--wb-bg-selected); color: var(--wb-text-primary); }
+
 .session-copy { display: grid; min-width: 0; gap: 1px; }
 .sidebar-empty { padding: 8px 16px; color: var(--wb-text-secondary); line-height: 17px; }
 .sidebar-footer { display: grid; flex: none; gap: 1px; padding: 8px; border-top: 1px solid var(--wb-border-subtle); }
@@ -279,6 +299,21 @@
 /* ⌘P Go to File. */
 .quick-open-overlay { align-items: flex-start; padding-top: 12vh; }
 .wb-modal.quick-open { width: min(620px, 92vw); padding: 0; overflow: hidden; }
+
+/* New worktree */
+.wb-modal.worktree-modal { width: min(600px, 92vw); }
+.worktree-dialog { padding: 22px; }
+.worktree-form { display: grid; gap: 18px; }
+.worktree-fields { grid-template-columns: 96px minmax(0, 1fr); }
+.worktree-form .dialog-actions { margin-top: 0; }
+.worktree-existing { display: grid; gap: 6px; padding-top: 14px; border-top: 1px solid var(--wb-border-subtle); }
+.worktree-existing h3 { margin: 0; color: var(--wb-text-secondary); font-size: 11px; font-weight: 600; }
+.worktree-existing ul { display: grid; gap: 2px; max-height: 180px; margin: 0; padding: 0; overflow: auto; list-style: none; }
+.worktree-existing li { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--wb-radius-md); }
+.worktree-existing li:hover { background: var(--wb-bg-hover); }
+.worktree-existing-copy { display: grid; flex: 1; min-width: 0; gap: 1px; }
+.worktree-existing-copy strong { overflow: hidden; font-family: var(--wb-font-mono); font-size: 12px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.worktree-existing-copy small { overflow: hidden; color: var(--wb-text-secondary); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
 .quick-open .wb-dialog { padding: 0; }
 .quick-open-search { height: 44px; margin: 0; border: 0; border-bottom: 1px solid var(--wb-border-subtle); border-radius: 0; background: transparent; }
 .quick-open-search:focus-within { background: transparent; }

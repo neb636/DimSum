@@ -18,12 +18,15 @@ export function registerDimsum(roots: WorkspaceRoots): void {
   const granted = async (root: string | undefined) => { if (root !== undefined) await roots.resolve(root); return root; };
   handle(DIMSUM_IPC.configRead, async (_event, input) => {
     const { name, root } = configReadSchema.parse(input);
-    return readLayers(name, await granted(root));
+    const workspaceRoot = await granted(root);
+    return readLayers(name, workspaceRoot, workspaceRoot === undefined ? undefined : roots.personalRoot(workspaceRoot));
   });
   handle(DIMSUM_IPC.configWrite, async (_event, input) => {
     const { name, scope, root, value, expectedHash } = configWriteSchema.parse(input);
     if (scope !== "user" && !root) throw new Error(`The ${scope} layer belongs to a workspace.`);
-    return writeLayer(name, scope, scope === "user" ? undefined : await granted(root), value, expectedHash);
+    // A worktree's personal layer is its repository's (see WorkspaceRoots.personalRoot).
+    const layerRoot = scope === "user" ? undefined : await granted(scope === "local" && root ? roots.personalRoot(root) : root);
+    return writeLayer(name, scope, layerRoot, value, expectedHash);
   });
   handle(DIMSUM_IPC.extensionsList, async (_event, input) => {
     const { root } = extensionsListSchema.parse(input ?? {});

@@ -29,6 +29,7 @@ import { CheckIcon, ChevronDownIcon, PlusIcon, TrashIcon } from "../../ui/icons"
 import { Button, IconButton } from "../../ui/controls";
 import { layerCopy } from "./layer-copy";
 import { fileHolds, saveInstructions, storedOptionsOf, useInstructionFiles } from "./repo-instructions";
+import { repositoryOf } from "../../../shared/workspace-tree";
 
 type Kind = "toggle" | "select" | "text";
 
@@ -170,8 +171,13 @@ function rowStatus(item: LayeredInstruction, repo: string): string | undefined {
 
 type Editing = { layer: InstructionLayer; id?: string };
 
-export function InstructionsManager({ workspaceId, close }: { workspaceId: string; close?: () => void }) {
-  const [workspace] = useWorkbenchStore(useShallow((state) => [state.workspaces.find((w) => w.id === workspaceId)]));
+export function InstructionsManager({ workspaceId: openedIn, close }: { workspaceId: string; close?: () => void }) {
+  const [workspace, repository] = useWorkbenchStore(useShallow((state) => {
+    const found = state.workspaces.find((w) => w.id === openedIn);
+    return [found, repositoryOf(state.workspaces, found)];
+  }));
+  // Personal and per-workspace choices belong to the repository, so its worktrees share them; shared files are this checkout's.
+  const workspaceId = repository?.id ?? openedIn;
   const forgetSettings = useWorkbenchStore((state) => state.forgetInstructionSettings);
   const setDisabled = useWorkbenchStore((state) => state.setInstructionDisabled);
   const dropStored = useWorkbenchStore((state) => state.dropStoredInstruction);
@@ -187,7 +193,7 @@ export function InstructionsManager({ workspaceId, close }: { workspaceId: strin
     stored,
     shared: repoFile.status === "ok" ? repoFile.options : [],
     workspaceId,
-    disabledIds: workspace?.disabledInstructionIds ?? [],
+    disabledIds: repository?.disabledInstructionIds ?? [],
   });
   const [editing, setEditing] = useState<Editing>(() => (layered[0] ? { layer: layered[0].layer, id: layered[0].option.id } : { layer: "global" }));
   const current = editing.id ? layered.find((item) => item.layer === editing.layer && item.option.id === editing.id) : undefined;
@@ -251,7 +257,7 @@ export function InstructionsManager({ workspaceId, close }: { workspaceId: strin
 
   const revealFile = () => {
     close?.();
-    void services.commands.execute("file.open", { workspaceId, root, path: sharedPath, preview: false });
+    void services.commands.execute("file.open", { workspaceId: openedIn, root, path: sharedPath, preview: false });
   };
   const restoreDefaults = async (ids: string[]) => {
     const failure = await saveInstructions("global", root, (options) => [

@@ -50,6 +50,8 @@ export interface ConfigLayers {
   local?: ConfigDocument;
   /** The workspace layer was read from a file this app used to keep it in (`.workbench/instructions.json`). */
   legacyWorkspace?: boolean;
+  /** The folder the local layer was read from when it isn't the workspace's own: a worktree's are its repository's. */
+  localRoot?: string;
 }
 
 export const configReadSchema = z.object({ name: configNameSchema, root: z.string().optional() });

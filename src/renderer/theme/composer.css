@@ -342,6 +342,7 @@
 .launcher-heading h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.03em; }
 .launcher-heading p, .launcher-note { color: var(--wb-text-secondary); }
 .launcher-note { max-width: 640px; font-size: 11px; text-align: center; }
+.launcher-fields .launcher-note { margin: 4px 0 0; text-align: left; }
 .harness-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; width: min(760px, 100%); }
 .harness-option {
   display: flex;

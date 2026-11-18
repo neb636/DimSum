@@ -7,16 +7,20 @@ import { layerCopy } from "./layer-copy";
 import { InstructionsManager } from "./InstructionsManager";
 import { instructionFilesOf, storedOptionsOf } from "./repo-instructions";
 import { useConfigLayers } from "../../core/config-layers";
+import { repositoryOf } from "../../../shared/workspace-tree";
 
 /** Every instruction for a workspace, with its layer and whether it is on there. */
 export function workspaceInstructions(workspaceId: string): LayeredInstruction[] {
-  const workspace = useWorkbenchStore.getState().workspaces.find((item) => item.id === workspaceId);
+  const { workspaces } = useWorkbenchStore.getState();
+  const workspace = workspaces.find((item) => item.id === workspaceId);
+  // Shared instructions come from this checkout's own files; what the person keeps for the repository applies to its worktrees too.
+  const repository = repositoryOf(workspaces, workspace);
   const files = instructionFilesOf(workspace?.path);
   return layerInstructions({
-    stored: storedOptionsOf(files, workspaceId),
+    stored: storedOptionsOf(files, repository?.id ?? workspaceId),
     shared: files.shared.status === "ok" ? files.shared.options : [],
-    workspaceId,
-    disabledIds: workspace?.disabledInstructionIds ?? [],
+    workspaceId: repository?.id ?? workspaceId,
+    disabledIds: repository?.disabledInstructionIds ?? [],
   });
 }
 

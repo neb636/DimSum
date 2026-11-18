@@ -6,12 +6,8 @@ import { AgentIcon, BranchIcon, CheckIcon, FolderIcon } from "../../ui/icons";
 import { Button } from "../../ui/controls";
 import { CreateFromPicker } from "./CreateFromPicker";
 import { useBaseBranches } from "./use-base-branches";
-
-function suggestedBranch(): string {
-  const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
-  // Every new session gets a worktree by default, so two started in the same minute must not collide.
-  return `wb/session-${stamp}-${Math.random().toString(36).slice(2, 6)}`;
-}
+import { useWorkbenchStore } from "../../state/workbench-store";
+import { repositoryOf, suggestedBranch, worktreeFolderPreview } from "../../../shared/workspace-tree";
 
 export function SessionLauncher({ workspace, state, providers, selected, busy, needsModel, error, onChange, onStart }: {
   workspace: Workspace;
@@ -31,17 +27,15 @@ export function SessionLauncher({ workspace, state, providers, selected, busy, n
     void window.workbench.sourceControl.detect(workspace.path).then((value) => { if (active) setCanWorktree(value); }).catch(() => undefined);
     return () => { active = false; };
   }, [workspace.path]);
-  // A worktree is the default wherever one is possible; an explicit choice is kept.
-  const needsDefault = canWorktree && !state.runIn && !state.cwd;
-  useEffect(() => {
-    if (needsDefault) onChange({ runIn: { kind: "worktree", branch: suggestedBranch() } });
-  }, [needsDefault, onChange]);
+  // A new worktree is always made from the repository, even when this session is in one of its worktrees.
+  const repository = useWorkbenchStore((store) => repositoryOf(store.workspaces, workspace));
+  // A session runs in the checkout it was opened in unless the person asks for a new worktree.
   const runIn = state.runIn ?? { kind: "checkout" };
-  const bases = useBaseBranches(workspace.path, canWorktree && !state.cwd);
+  const bases = useBaseBranches(repository.path, canWorktree && !state.cwd && runIn.kind === "worktree");
   const branchTaken = runIn.kind === "worktree" && Boolean(bases.data?.branches.some((b) => b.kind === "local" && b.name === runIn.branch));
   const available = Boolean(providers.find((p) => p.id === selected)?.available);
   const agents = providers.filter((p) => services.sessions.get(p.id)?.kind === "agent");
-  const location = state.cwd ?? (runIn.kind === "worktree" ? `${workspace.path}-worktrees/${runIn.branch.replace(/[^A-Za-z0-9._-]+/g, "-")}` : workspace.path);
+  const location = state.cwd ?? (runIn.kind === "worktree" ? worktreeFolderPreview(repository.path, runIn.branch) : workspace.path);
 
   return <section className="session-launcher" aria-label="New agent session">
     <div className="launcher-heading">
@@ -74,7 +68,7 @@ export function SessionLauncher({ workspace, state, providers, selected, busy, n
             const kind = [...keys][0];
             onChange({ runIn: kind === "worktree" ? { kind: "worktree", branch: suggestedBranch() } : { kind: "checkout" } });
           }}>
-          <ToggleButton id="checkout" className="segment"><FolderIcon size={13} />Local workspace checkout</ToggleButton>
+          <ToggleButton id="checkout" className="segment">{workspace.parentId ? <BranchIcon size={13} /> : <FolderIcon size={13} />}{workspace.parentId ? "This worktree" : "Local checkout"}</ToggleButton>
           <ToggleButton id="worktree" className="segment" isDisabled={!canWorktree}><BranchIcon size={13} />New worktree</ToggleButton>
         </ToggleButtonGroup>
       </dd>
@@ -90,7 +84,10 @@ export function SessionLauncher({ workspace, state, providers, selected, busy, n
         </dd>
       </>}
       <dt>Location</dt>
-      <dd><code className="launcher-location">{location}</code></dd>
+      <dd>
+        <code className="launcher-location">{location}</code>
+        {runIn.kind === "worktree" && !state.cwd && <p className="launcher-note">The worktree is listed under {repository.name} in the sidebar, and this session moves into it when it starts.</p>}
+      </dd>
     </dl>
     {error && <p role="alert" className="agent-error">{error}</p>}
     <div className="launcher-actions">

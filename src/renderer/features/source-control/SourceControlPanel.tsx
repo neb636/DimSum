@@ -11,7 +11,6 @@ import {
   GridList,
   GridListItem,
   Heading,
-  Input,
   Label,
   ListBox,
   ListBoxItem,
@@ -42,11 +41,10 @@ function folderName(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).at(-1) ?? path;
 }
 
-/** Switch the checkout to another branch (only with nothing uncommitted), or open a new worktree as a workspace. */
-function BranchSwitcher({ root, current, changes }: { root: string; current?: string; changes: number }) {
+/** Switch the checkout to another branch (only with nothing uncommitted), or start a new worktree beside it. */
+function BranchSwitcher({ workspaceId, root, current, changes }: { workspaceId: string; root: string; current?: string; changes: number }) {
   const [branches, setBranches] = useState<string[]>([]);
   const [branch, setBranch] = useState<string | null>(null);
-  const [newBranch, setNewBranch] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -61,14 +59,9 @@ function BranchSwitcher({ root, current, changes }: { root: string; current?: st
     finally { setBusy(false); }
   };
   const checkout = () => run(async () => { if (branch) await window.workbench.sourceControl.checkout(root, branch); setBranch(null); });
-  const worktree = () => run(async () => {
-    const result = await window.workbench.sourceControl.createWorktree(root, newBranch.trim());
-    useWorkbenchStore.getState().addWorkspace(result.path);
-    setNewBranch("");
-  });
   return <Disclosure className="branch-area">
     <Heading className="branch-area-heading">
-      <AriaButton slot="trigger" className="branch-area-trigger"><ChevronRightIcon size={11} />Switch branch or open a worktree</AriaButton>
+      <AriaButton slot="trigger" className="branch-area-trigger"><ChevronRightIcon size={11} />Switch branch or create a worktree</AriaButton>
     </Heading>
     <DisclosurePanel className="branch-area-panel">
       <Select className="branch-select" placeholder="Choose a branch…" selectedKey={branch} onSelectionChange={(key) => setBranch(key === null ? null : String(key))}>
@@ -79,12 +72,8 @@ function BranchSwitcher({ root, current, changes }: { root: string; current?: st
         </Popover>
       </Select>
       <Button isDisabled={!branch || busy || branch === current || changes > 0} onPress={() => void checkout()}>Switch branch</Button>
-      {changes > 0 && <p className="panel-note">Commit your changes or open a worktree to switch branches.</p>}
-      <TextField value={newBranch} onChange={setNewBranch} className="branch-field">
-        <Label>New worktree branch</Label>
-        <Input placeholder="feature/name" />
-      </TextField>
-      <Button isDisabled={!newBranch.trim() || busy} onPress={() => void worktree()}>Open worktree</Button>
+      {changes > 0 && <p className="panel-note">Commit your changes, or work on another branch in a worktree, which leaves this checkout as it is.</p>}
+      <Button isDisabled={busy} onPress={() => void services.commands.execute("worktree.new", { workspaceId })}><BranchIcon size={14} />New worktree…</Button>
       {error && <p role="alert" className="agent-error">{error}</p>}
     </DisclosurePanel>
   </Disclosure>;
@@ -270,7 +259,7 @@ export function SourceControlPanel({ workspace }: PanelProps) {
           <Button isDisabled={busy} onPress={() => void runAction(root, "abortOperation")}>Abort</Button>
         </div>
       </div>}
-      <BranchSwitcher root={root} current={status.branch} changes={count} />
+      <BranchSwitcher workspaceId={workspace.id} root={root} current={status.branch} changes={count} />
       <CommitArea key={root} root={root} status={status} />
       {staged.length > 0 && <>
         <div className="panel-section-header"><Label>Staged Changes</Label><span className="panel-section-actions">
@@ -309,8 +298,10 @@ export function SourceControlBadge({ workspace }: PanelProps) {
 /** Branch name for a workspace row in the sidebar. */
 export function WorkspaceBranch({ workspaceId }: WidgetProps) {
   const path = useWorkbenchStore((state) => state.workspaces.find((item) => item.id === workspaceId)?.path || undefined);
+  const name = useWorkbenchStore((state) => state.workspaces.find((item) => item.id === workspaceId)?.name);
   const branch = useSourceControlStatus(path, false)?.status?.branch;
-  return branch ? <span className="workspace-branch">{branch}</span> : null;
+  // A worktree's row is already named after its branch.
+  return branch && branch !== name ? <span className="workspace-branch">{branch}</span> : null;
 }
 
 /** Branch of the active view's folder in the status bar. */

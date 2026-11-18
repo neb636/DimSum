@@ -1,9 +1,9 @@
 import { execFile, spawn, type ChildProcess } from "node:child_process";
-import { access, cp, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { access, cp, mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type {
-  BaseBranch, BaseBranches, DiffBase, SearchMatch, SearchOptions, SearchResult, SourceControlAction, SourceControlBranchAction, SourceControlChange, SourceControlCommit,
+  BaseBranch, BaseBranches, DiffBase, ExistingWorktree, SearchMatch, SearchOptions, SearchResult, SourceControlAction, SourceControlBranchAction, SourceControlChange, SourceControlCommit,
   SourceControlCommitFile, SourceControlCommitFileContents, SourceControlHistory, SourceControlOperation, SourceControlStash, SourceControlStashAction,
 } from "../../shared/models";
 import { executablePath } from "../executables";
@@ -162,6 +162,20 @@ function pathspecs(paths: string[]): string[] {
 
 function requireCommitId(id: string): void {
   if (!COMMIT_ID.test(id)) throw new Error("That is not a commit id.");
+}
+
+/** `git worktree list --porcelain -z`: NUL-separated attribute lines, each entry ended by an empty one. */
+function parseWorktreeList(output: string): { path: string; branch?: string; bare: boolean; prunable: boolean }[] {
+  const entries: { path: string; branch?: string; bare: boolean; prunable: boolean }[] = [];
+  let current: (typeof entries)[number] | undefined;
+  for (const line of output.split("\0")) {
+    if (line.startsWith("worktree ")) entries.push(current = { path: line.slice(9), bare: false, prunable: false });
+    else if (!current) continue;
+    else if (line.startsWith("branch ")) current.branch = line.slice(7).replace(/^refs\/heads\//, "");
+    else if (line === "bare") current.bare = true;
+    else if (line === "prunable" || line.startsWith("prunable ")) current.prunable = true;
+  }
+  return entries;
 }
 
 export function isValidBranchName(branch: string): boolean {
@@ -369,6 +383,18 @@ export class GitSourceControlProvider implements SourceControlProvider {
     // --no-track: the session's branch is its own work, not a local copy of the branch it started from.
     await this.git(root, ["worktree", "add", "--no-track", "-b", branch, "--", target, ...(base ? [base] : [])]);
     return { path: target, branch };
+  }
+
+  /** `git worktree list`, without this checkout, bare entries, or ones whose folder is gone. */
+  async worktrees(root: string): Promise<ExistingWorktree[]> {
+    const here = await realpath(root);
+    const entries = parseWorktreeList(await this.git(root, ["worktree", "list", "--porcelain", "-z"]));
+    const listed = await Promise.all(entries.map(async (entry) => {
+      if (entry.bare || entry.prunable) return undefined;
+      const resolved = await realpath(entry.path).catch(() => undefined);
+      return resolved && resolved !== here ? { path: entry.path, ...(entry.branch ? { branch: entry.branch } : {}) } : undefined;
+    }));
+    return listed.filter((entry): entry is ExistingWorktree => Boolean(entry));
   }
 
   /** The ref comes from the renderer, so it must name an existing branch; one on origin is first brought up to date. */

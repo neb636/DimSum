@@ -35,6 +35,7 @@ import { aiUsage } from "../features/ai-usage/register-ai-usage";
 import { extensions } from "../features/extensions/register-extensions";
 import { activateExtension } from "../extensions/host";
 import { publishWorkbenchEvents } from "./workbench-events";
+import { registerWorktrees, supportsWorktrees } from "../features/worktrees/worktrees";
 import { defineExtension, guard, maxLength, nativeCommand, secrets, type ExtensionDefinition } from "@dimsum/sdk";
 import { BranchIcon, CommitIcon, FileIcon, FilesIcon, LayersIcon, TerminalIcon } from "../ui/icons";
 
@@ -141,15 +142,24 @@ const workbench = defineExtension({
     ctx.commands.register<{ workspaceId: string }>("workspace.removeIcon", ({ workspaceId }) => {
       useWorkbenchStore.getState().setWorkspaceIcon(workspaceId, undefined);
     });
-    ctx.contextMenus.register({ id: "workspace.actions", kind: "workspace", items: (context) => context.kind !== "workspace" ? [] : isFilesWorkspace(context.workspace) ? [
-      { id: "remove", label: "Close All Files", destructive: true, section: "remove", run: () => services.commands.execute("workspace.remove", context.workspace.id) },
-    ] : [
-      ...services.views.list(context.workspace.id).filter((d) => d.creatable !== false).map((d) => ({ id: `new-${d.id}`, label: `New ${d.label}`, section: "create", run: () => services.commands.execute("view.create", { workspaceId: context.workspace.id, viewType: d.id }) })),
-      ...[{ id: "reveal", label: "Reveal Folder", command: "workspace.reveal" }, { id: "terminal", label: "Open in Terminal", command: "workspace.terminal" }, { id: "copy", label: "Copy Path", command: "workspace.copyPath" }].map((item) => ({ ...item, section: "workspace", run: () => services.commands.execute(item.command, { workspaceId: context.workspace.id }) })),
-      { id: "choose-icon", label: context.workspace.icon ? "Change Custom Icon…" : "Set Custom Icon…", section: "icon", run: () => services.commands.execute("workspace.chooseIcon", { workspaceId: context.workspace.id }) },
-      ...(context.workspace.icon ? [{ id: "remove-icon", label: "Remove Custom Icon", section: "icon", run: () => services.commands.execute("workspace.removeIcon", { workspaceId: context.workspace.id }) }] : []),
-      { id: "remove", label: "Remove Workspace", destructive: true, section: "remove", run: () => services.commands.execute("workspace.remove", context.workspace.id) },
-    ] });
+    registerWorktrees(ctx);
+    ctx.contextMenus.register({ id: "workspace.actions", kind: "workspace", items: (context) => {
+      if (context.kind !== "workspace") return [];
+      const { workspace } = context;
+      if (isFilesWorkspace(workspace)) return [{ id: "remove", label: "Close All Files", destructive: true, section: "remove", run: () => services.commands.execute("workspace.remove", workspace.id) }];
+      const worktree = Boolean(workspace.parentId);
+      return [
+        ...services.views.list(workspace.id).filter((d) => d.creatable !== false).map((d) => ({ id: `new-${d.id}`, label: `New ${d.label}`, section: "create", run: () => services.commands.execute("view.create", { workspaceId: workspace.id, viewType: d.id }) })),
+        ...(supportsWorktrees(workspace) ? [{ id: "new-worktree", label: "New Worktree…", section: "create", run: () => services.commands.execute("worktree.new", { workspaceId: workspace.id }) }] : []),
+        ...[{ id: "reveal", label: "Reveal Folder", command: "workspace.reveal" }, { id: "terminal", label: "Open in Terminal", command: "workspace.terminal" }, { id: "copy", label: "Copy Path", command: "workspace.copyPath" }].map((item) => ({ ...item, section: "workspace", run: () => services.commands.execute(item.command, { workspaceId: workspace.id }) })),
+        // A worktree is shown with its repository's icon row above it, so only the repository has one.
+        ...(worktree ? [] : [
+          { id: "choose-icon", label: workspace.icon ? "Change Custom Icon…" : "Set Custom Icon…", section: "icon", run: () => services.commands.execute("workspace.chooseIcon", { workspaceId: workspace.id }) },
+          ...(workspace.icon ? [{ id: "remove-icon", label: "Remove Custom Icon", section: "icon", run: () => services.commands.execute("workspace.removeIcon", { workspaceId: workspace.id }) }] : []),
+        ]),
+        { id: "remove", label: worktree ? "Close Worktree" : "Remove Workspace", destructive: true, section: "remove", run: () => services.commands.execute("workspace.remove", workspace.id) },
+      ];
+    } });
     registerFileActionContributions();
     registerFileCommands();
     registerSourceControlCommands();
@@ -173,12 +183,18 @@ const workbench = defineExtension({
     ctx.commands.register<string>("workspace.select", (workspaceId) => {
       useWorkbenchStore.getState().selectWorkspace(workspaceId);
     });
+    // Removing a repository's workspace removes its worktrees too; closing a worktree leaves the rest.
     ctx.commands.register<string>("workspace.remove", async (workspaceId) => {
-      const workspace = useWorkbenchStore.getState().workspaces.find((item) => item.id === workspaceId);
-      if (!workspace || !await confirmDestructive(workspaceRemoveConfirmation(workspace))) return;
-      for (const view of workspace.views) {
-        // Already confirmed for the whole workspace; a tab kept open (unsaved edits the person chose not to lose) keeps the workspace too.
-        if (!await services.commands.execute<boolean>("view.close", { workspaceId, viewId: view.id, confirmed: true })) return;
+      const { workspaces } = useWorkbenchStore.getState();
+      const workspace = workspaces.find((item) => item.id === workspaceId);
+      if (!workspace) return;
+      const worktrees = workspaces.filter((item) => item.parentId === workspaceId);
+      if (!await confirmDestructive(workspaceRemoveConfirmation(workspace, worktrees))) return;
+      for (const owner of [...worktrees, workspace]) {
+        for (const view of owner.views) {
+          // Already confirmed for the whole workspace; a tab kept open (unsaved edits the person chose not to lose) keeps the workspace too.
+          if (!await services.commands.execute<boolean>("view.close", { workspaceId: owner.id, viewId: view.id, confirmed: true })) return;
+        }
       }
       useWorkbenchStore.getState().removeWorkspace(workspaceId);
     });

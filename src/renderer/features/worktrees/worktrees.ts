@@ -1,0 +1,102 @@
+import { useEffect } from "react";
+import { create } from "zustand";
+import type { ExtensionContext } from "@dimsum/sdk";
+import type { Workspace } from "../../../shared/models";
+import { isFilesWorkspace } from "../../../shared/files-workspace";
+import { repositoryOf } from "../../../shared/workspace-tree";
+import { services } from "../../core/services";
+import { useWorkbenchStore } from "../../state/workbench-store";
+
+/**
+ * Worktrees: other checkouts of a workspace's repository, each a workspace of its own listed under the repository
+ * (see `Workspace.parentId`). Creating and listing them goes through the source-control provider, so a folder can
+ * have worktrees only where its source control has the idea.
+ */
+
+/** Whether each folder's source control can make worktrees; asked once per folder. */
+const useSupport = create<Record<string, boolean>>(() => ({}));
+const asked = new Set<string>();
+
+function ask(path: string): void {
+  if (!path || asked.has(path)) return;
+  asked.add(path);
+  void window.workbench.sourceControl.detect(path)
+    .then((supported) => useSupport.setState({ [path]: supported }))
+    .catch(() => useSupport.setState({ [path]: false }));
+}
+
+/** True once the folder is known to support worktrees; false while unknown. */
+export function supportsWorktrees(workspace: Workspace | undefined): boolean {
+  if (!workspace || isFilesWorkspace(workspace)) return false;
+  ask(workspace.path);
+  return Boolean(useSupport.getState()[workspace.path]);
+}
+
+export function useWorktreeSupport(workspace: Workspace | undefined): boolean {
+  const path = workspace && !isFilesWorkspace(workspace) ? workspace.path : "";
+  useEffect(() => ask(path), [path]);
+  return useSupport((state) => Boolean(path && state[path]));
+}
+
+/** The repository the New worktree dialog is open for. */
+export const useWorktreeDialog = create<{ repositoryId?: string }>(() => ({}));
+
+export type WorktreeOpening = "agent" | "terminal" | null;
+
+function repositoryFor(workspaceId: string): Workspace {
+  const { workspaces } = useWorkbenchStore.getState();
+  const workspace = workspaces.find((item) => item.id === workspaceId);
+  if (!workspace || isFilesWorkspace(workspace)) throw new Error("Choose a workspace folder for the worktree.");
+  return repositoryOf(workspaces, workspace);
+}
+
+/** Shows the worktree workspace and wakes the tab it opened with. */
+function show(workspaceId: string): void {
+  const workspace = useWorkbenchStore.getState().workspaces.find((item) => item.id === workspaceId);
+  if (workspace?.activeViewId) void services.commands.execute("view.activate", { workspaceId, viewId: workspace.activeViewId });
+  else void services.commands.execute("workspace.select", workspaceId);
+}
+
+/**
+ * Creates a worktree of `workspaceId`'s repository on a new `branch`, from `base` (a `BaseBranch.ref`; the
+ * repository's default branch without one), and lists it under the repository. Returns the new workspace's id.
+ */
+export async function createWorktree({ workspaceId, branch, base, open = "agent", moveViewId }: {
+  workspaceId: string;
+  branch: string;
+  base?: string;
+  /** The tab it opens with; null for none. */
+  open?: WorktreeOpening;
+  /**
+   * A tab to move into the worktree instead (a session starting there), its `cwd` set to the worktree. It moves in the
+   * same update that lists the worktree, so it stays on screen throughout.
+   */
+  moveViewId?: string;
+}): Promise<{ workspaceId: string; path: string }> {
+  const repository = repositoryFor(workspaceId);
+  const { sourceControl } = window.workbench;
+  const from = base ?? (await sourceControl.baseBranches(repository.path)).defaultRef;
+  const created = await sourceControl.createWorktree(repository.path, branch, from);
+  const store = useWorkbenchStore.getState();
+  const id = store.addWorkspace(created.path, { parentId: repository.id, name: created.branch, initialView: moveViewId ? null : open });
+  if (moveViewId) store.transferView(moveViewId, id, { cwd: created.path });
+  else show(id);
+  return { workspaceId: id, path: created.path };
+}
+
+/** Lists one of the repository's existing checkouts (from `sourceControl.worktrees`) under it. */
+export async function openWorktree(workspaceId: string, path: string, branch?: string): Promise<string> {
+  const repository = repositoryFor(workspaceId);
+  const granted = await window.workbench.sourceControl.openWorktree(repository.path, path);
+  const id = useWorkbenchStore.getState().addWorkspace(granted, { parentId: repository.id, ...(branch ? { name: branch } : {}), initialView: null });
+  show(id);
+  return id;
+}
+
+export function registerWorktrees(ctx: ExtensionContext): void {
+  ctx.commands.register<{ workspaceId: string }>("worktree.new", ({ workspaceId }) => {
+    useWorktreeDialog.setState({ repositoryId: repositoryFor(workspaceId).id });
+  });
+  ctx.commands.register<{ workspaceId: string; branch: string; base?: string; open?: WorktreeOpening }>("worktree.create",
+    async (args) => (await createWorktree(args)).workspaceId);
+}

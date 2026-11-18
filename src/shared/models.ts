@@ -23,6 +23,11 @@ export interface Workspace {
    * It has no folder, so only file views live in it. Missing means an ordinary folder workspace.
    */
   kind?: "folder" | "files";
+  /**
+   * A worktree: another checkout of the repository whose workspace this names. It has its own folder (`path`) and tabs,
+   * and is listed under that workspace in the sidebar, beside its local checkout.
+   */
+  parentId?: string;
   /** A PNG data URL shown instead of the folder icon. */
   icon?: string;
   /** Global or shared instructions the person turned off in this workspace. */
@@ -379,6 +384,12 @@ export interface WorktreeResult {
   branch: string;
 }
 
+/** A checkout of a repository other than the folder asked about. `branch` is missing when it is detached. */
+export interface ExistingWorktree {
+  path: string;
+  branch?: string;
+}
+
 /** `cpu` is percent of one core; memory is resident bytes. */
 export interface ResourceUsage {
   cpu: number;
@@ -517,6 +528,10 @@ export interface WorkbenchApi {
     stashAction: (root: string, action: SourceControlStashAction, id: string) => Promise<void>;
     /** Starts from `base` (a `BaseBranch.ref`), or the current commit without one. */
     createWorktree: (root: string, branch: string, base?: string) => Promise<WorktreeResult>;
+    /** The repository's other checkouts; empty where the source control has no such idea. */
+    worktrees: (root: string) => Promise<ExistingWorktree[]>;
+    /** Lets one of `worktrees(root)` be opened as a worktree workspace of `root`, wherever it is on disk. */
+    openWorktree: (root: string, path: string) => Promise<string>;
     branches: (root: string) => Promise<string[]>;
     /** With `refresh`, first updates from the remote (best effort). */
     baseBranches: (root: string, refresh?: boolean) => Promise<BaseBranches>;

@@ -13,6 +13,7 @@ import { modelSettings, needsModelChoice, rememberAgentModels, useDefaultHarness
 import { confirmDestructive } from "../../ui/confirm";
 import { SendIcon } from "../../ui/icons";
 import { createElement } from "react";
+import { createWorktree } from "../worktrees/worktrees";
 
 export interface ComposerTarget { workspaceId: string; viewId: string; }
 export interface PromptPreview extends AssembledPrompt { intent: AgentPromptRequest["intent"]; }
@@ -40,11 +41,21 @@ const emptyRuntime: ComposerRuntime = { history: [], sending: false, launching: 
 export const useComposerState = create<{ views: Record<string, ComposerRuntime> }>(() => ({ views: {} }));
 export const emptyComposerRuntime = emptyRuntime;
 
-function stateFor({ workspaceId, viewId }: ComposerTarget): AgentViewState | undefined {
+/**
+ * Where the view is now. A tab can move to another workspace while it works (a session starting in a new worktree
+ * moves into it), so a target captured earlier is looked up again by its view.
+ */
+function current(target: ComposerTarget): ComposerTarget {
+  const owner = useWorkbenchStore.getState().workspaces.find((w) => w.views.some((v) => v.id === target.viewId));
+  return owner && owner.id !== target.workspaceId ? { workspaceId: owner.id, viewId: target.viewId } : target;
+}
+function stateFor(target: ComposerTarget): AgentViewState | undefined {
+  const { workspaceId, viewId } = current(target);
   return useWorkbenchStore.getState().workspaces.find((w) => w.id === workspaceId)?.views.find((v) => v.id === viewId)?.state as AgentViewState | undefined;
 }
 function patchView(target: ComposerTarget, patch: Partial<AgentViewState>): void {
-  useWorkbenchStore.getState().updateViewState(target.workspaceId, target.viewId, patch);
+  const { workspaceId, viewId } = current(target);
+  useWorkbenchStore.getState().updateViewState(workspaceId, viewId, patch);
 }
 export function patchComposer(target: ComposerTarget, patch: Pick<AgentViewState, "draft" | "attachments" | "intent" | "modelSettings">): void {
   patchView(target, { ...patch, composerRevision: (stateFor(target)?.composerRevision ?? 0) + 1 });
@@ -60,7 +71,8 @@ export function harnessOf(target: ComposerTarget): string | undefined {
 export function promptMenusFor(target: ComposerTarget) {
   return services.promptMenus.resolve({ ...target, providerId: harnessOf(target) });
 }
-function exists({ workspaceId, viewId }: ComposerTarget): boolean {
+function exists(target: ComposerTarget): boolean {
+  const { workspaceId, viewId } = current(target);
   return Boolean(useWorkbenchStore.getState().workspaces.find((w) => w.id === workspaceId)?.views.some((v) => v.id === viewId));
 }
 function updateRuntime(viewId: string, patch: Partial<ComposerRuntime>): void {
@@ -75,7 +87,7 @@ export function clearComposerRuntime(viewId: string): void {
 }
 export function composedPrompt(target: ComposerTarget): PromptPreview {
   const state = stateFor(target);
-  return { ...services.promptAssembler.assemble(state?.draft ?? "", services.promptContributors.collect(target)), intent: state?.intent ?? "default" };
+  return { ...services.promptAssembler.assemble(state?.draft ?? "", services.promptContributors.collect(current(target))), intent: state?.intent ?? "default" };
 }
 function entryFor(target: ComposerTarget, outcome: PromptHistoryEntry["outcome"], message: string): PromptHistoryEntry {
   const state = stateFor(target);
@@ -124,7 +136,7 @@ async function attachFiles(target: ComposerTarget, files: File[]): Promise<void>
  * Resuming never creates one: a CLI finds earlier conversations by folder, and a new worktree has none.
  */
 export async function prepareSessionFolder(target: ComposerTarget, resume = false): Promise<string> {
-  const workspace = useWorkbenchStore.getState().workspaces.find((w) => w.id === target.workspaceId);
+  const workspace = useWorkbenchStore.getState().workspaces.find((w) => w.id === current(target).workspaceId);
   const state = stateFor(target);
   if (!workspace) throw new Error("The workspace was removed.");
   if (state?.cwd) return state.cwd;
@@ -133,11 +145,8 @@ export async function prepareSessionFolder(target: ComposerTarget, resume = fals
     patchView(target, { cwd: workspace.path, runIn: { kind: "checkout" } });
     return workspace.path;
   }
-  const { sourceControl } = window.workbench;
-  const base = worktree.base?.ref ?? (await sourceControl.baseBranches(workspace.path)).defaultRef;
-  const { path: cwd } = await sourceControl.createWorktree(workspace.path, worktree.branch, base);
-  patchView(target, { cwd });
-  return cwd;
+  // The new worktree is listed under the repository, and the session moves into it, as its tab there.
+  return (await createWorktree({ workspaceId: workspace.id, branch: worktree.branch, base: worktree.base?.ref, moveViewId: target.viewId })).path;
 }
 
 const sameSettings = (a: AgentModelSettings | null, b: AgentModelSettings | null) => a?.model === b?.model && a?.effort === b?.effort;
@@ -189,10 +198,11 @@ function titleFromPrompt(draft: string): string {
 
 /** After the CLI takes a prompt: menus reset, the view is titled, and the composer clears unless edited meanwhile. */
 function finishSubmitted(target: ComposerTarget, draft: string, revision: number, prompt: string): void {
-  services.events.emit("prompt.sent", { ...target, providerId: useAgentRuntimes.getState().sessions[target.viewId]?.providerId, prompt });
+  services.events.emit("prompt.sent", { ...current(target), providerId: useAgentRuntimes.getState().sessions[target.viewId]?.providerId, prompt });
   resetMenusAfterSend(target);
   if (stateFor(target)?.autoTitle && draft.trim()) {
-    useWorkbenchStore.getState().renameView(target.workspaceId, target.viewId, titleFromPrompt(draft));
+    const { workspaceId, viewId } = current(target);
+    useWorkbenchStore.getState().renameView(workspaceId, viewId, titleFromPrompt(draft));
     patchView(target, { autoTitle: false });
   }
   if ((stateFor(target)?.composerRevision ?? 0) === revision) {
@@ -313,7 +323,7 @@ export function registerComposerContributions(): void {
   // The CLI starts when the first prompt is sent: prepare its folder, launch it, wait for its input, then deliver.
   // `providerId` is the harness shown as selected, which may be a default that was never saved to the view.
   services.commands.register<ComposerTarget & { providerId?: string }>("agent.session.launch", async ({ providerId, ...target }) => {
-    const workspace = useWorkbenchStore.getState().workspaces.find((w) => w.id === target.workspaceId);
+    const workspace = useWorkbenchStore.getState().workspaces.find((w) => w.id === current(target).workspaceId);
     const state = stateFor(target);
     const composer = useComposerState.getState().views[target.viewId];
     if (!workspace || !state?.draft?.trim() || composer?.launching || composer?.sending) return;

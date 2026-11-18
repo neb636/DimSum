@@ -3,6 +3,7 @@ import type { PromptCondition } from "./prompt-options";
 import { MAX_ATTACHMENT_BYTES } from "./prompt-attachments";
 import { defaultInstructions } from "./default-instructions";
 import type { SourceControlAction } from "./models";
+import { worktreeNameIn } from "./workspace-tree";
 
 export const workbenchViewSchema = z.object({
   id: z.string(),
@@ -17,6 +18,7 @@ export const workspaceSchema = z.object({
   name: z.string(),
   path: z.string(),
   kind: z.enum(["folder", "files"]).optional(),
+  parentId: z.string().optional(),
   // A bad icon falls back to the folder rather than failing validation, which would discard the whole saved state.
   icon: z.string().max(64 * 1024).regex(/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/).optional().catch(undefined),
   disabledInstructionIds: z.array(z.string()).optional(),
@@ -102,7 +104,75 @@ const legacyInstructionSchema = z.object({ id: z.string(), workspaceId: z.string
 
 /** Converts state written before prompt options existed, then seeds default instructions not added before. */
 export function migratePersistedState(input: unknown): unknown {
-  return seedDefaultInstructions(migrateLegacyInstructions(input));
+  return adoptWorktrees(seedDefaultInstructions(migrateLegacyInstructions(input)));
+}
+
+type LooseView = { id?: unknown; workspaceId?: unknown; state?: unknown; [key: string]: unknown };
+type LooseWorkspace = { id?: unknown; path?: unknown; kind?: unknown; parentId?: unknown; views?: unknown; activeViewId?: unknown; [key: string]: unknown };
+
+/**
+ * Before worktrees were listed in the sidebar, a session that ran in a new worktree stayed a tab of its repository's
+ * workspace (only its `cwd` named the worktree), and "Open worktree" added the worktree as an unrelated workspace.
+ * Both become worktrees of their repository: the workspace gains `parentId`, and each such tab moves into the
+ * worktree it works in, keeping its `cwd` so its conversation still resumes. Running it again changes nothing.
+ */
+function adoptWorktrees(input: unknown): unknown {
+  if (typeof input !== "object" || input === null) return input;
+  const source = input as Record<string, unknown>;
+  if (!Array.isArray(source.workspaces)) return input;
+  const isFolder = (item: LooseWorkspace) => item.kind !== "files" && typeof item.id === "string" && typeof item.path === "string" && item.path !== "";
+  let workspaces = (source.workspaces as LooseWorkspace[]).map((item) => ({ ...item }));
+  const byId = new Map(workspaces.map((item) => [item.id, item]));
+  let changed = false;
+  // Worktrees opened as workspaces of their own. A parent that is gone, or not a folder, leaves a workspace on its own.
+  const parents = new Map<LooseWorkspace, LooseWorkspace | undefined>();
+  for (const item of workspaces) {
+    if (!isFolder(item)) continue;
+    const parent = item.parentId !== undefined
+      ? byId.get(item.parentId)
+      : workspaces.find((other) => other !== item && isFolder(other) && worktreeNameIn(other.path as string, item.path as string));
+    parents.set(item, parent && parent !== item && isFolder(parent) ? parent : undefined);
+  }
+  // A worktree of a worktree belongs to the repository at the top; a loop has no top, so its members stand alone.
+  for (const item of workspaces) {
+    if (!isFolder(item)) continue;
+    const seen = new Set([item]);
+    let parent = parents.get(item);
+    while (parent && parents.get(parent) && !seen.has(parent)) { seen.add(parent); parent = parents.get(parent); }
+    const parentId = parent && !seen.has(parent) ? parent.id : undefined;
+    if (item.parentId !== parentId) { item.parentId = parentId; changed = true; }
+  }
+  let activeWorkspaceId = source.activeWorkspaceId;
+  // Tabs working in a worktree of their workspace move into that worktree.
+  const added: LooseWorkspace[] = [];
+  for (const repository of workspaces) {
+    if (!isFolder(repository) || repository.parentId !== undefined || !Array.isArray(repository.views)) continue;
+    const staying: LooseView[] = [];
+    for (const view of repository.views as LooseView[]) {
+      const cwd = typeof view.state === "object" && view.state !== null ? (view.state as { cwd?: unknown }).cwd : undefined;
+      const name = typeof cwd === "string" ? worktreeNameIn(repository.path as string, cwd) : undefined;
+      if (!name) { staying.push(view); continue; }
+      let worktree = [...workspaces, ...added].find((item) => isFolder(item) && worktreeNameIn(repository.path as string, item.path as string) === name);
+      if (!worktree) {
+        worktree = { id: `${repository.id as string}-wt-${name}`, name, path: cwd, parentId: repository.id, views: [] };
+        added.push(worktree);
+      }
+      const views = Array.isArray(worktree.views) ? worktree.views as LooseView[] : [];
+      worktree.views = [...views, { ...view, workspaceId: worktree.id }];
+      if (repository.activeViewId === view.id) {
+        worktree.activeViewId = view.id;
+        if (activeWorkspaceId === repository.id) activeWorkspaceId = worktree.id;
+      } else if (worktree.activeViewId === undefined) worktree.activeViewId = view.id;
+      changed = true;
+    }
+    if (staying.length !== repository.views.length) {
+      if (!staying.some((view) => view.id === repository.activeViewId)) repository.activeViewId = staying.at(-1)?.id;
+      repository.views = staying;
+    }
+  }
+  if (!changed) return input;
+  workspaces = [...workspaces, ...added];
+  return { ...source, workspaces, activeWorkspaceId };
 }
 
 function migrateLegacyInstructions(input: unknown): unknown {
@@ -201,6 +271,7 @@ export const sourceControlCommitSchema = z.object({ root: z.string().min(1), id:
 export const sourceControlCommitFileSchema = z.object({ root: z.string().min(1), id: z.union([commitIdSchema, z.literal("index")]), path: z.string().min(1).max(4096), originalPath: z.string().min(1).max(4096).optional() });
 export const sourceControlStashActionSchema = z.object({ root: z.string().min(1), action: z.enum(["apply", "pop", "drop"]), id: commitIdSchema });
 export const createWorktreeSchema = z.object({ root: z.string().min(1), branch: z.string().min(1).max(200), base: z.string().min(1).max(500).optional() });
+export const openWorktreeSchema = z.object({ root: z.string().min(1), path: z.string().min(1).max(4096) });
 export const baseBranchesSchema = z.object({ root: z.string().min(1), refresh: z.boolean().optional() });
 export const checkoutSchema = z.object({ root: z.string().min(1), branch: z.string().min(1).max(200) });
 export const fileWriteSchema = z.object({ root: z.string().min(1), path: z.string().min(1).max(4096), content: z.string().max(2 * 1024 * 1024), expectedHash: z.string().max(64).nullable() });

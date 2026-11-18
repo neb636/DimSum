@@ -28,7 +28,8 @@
     "release": "npm run build && node scripts/release.mjs",
     "qa:security": "npm run build && node scripts/qa-security.mjs",
     "qa:extensions": "npm run build && node scripts/qa-extensions.mjs",
-    "qa:local-preview": "npm run build && node scripts/qa-local-preview.mjs"
+    "qa:local-preview": "npm run build && node scripts/qa-local-preview.mjs",
+    "qa:worktrees": "npm run build && node scripts/qa-worktrees.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",
