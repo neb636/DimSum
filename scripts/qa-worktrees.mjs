@@ -41,6 +41,10 @@ git("worktree", "add", "--quiet", "-b", "elsewhere", join(directory, "elsewhere"
 await writeFile(join(container, "opened", "two.txt"), "two\n");
 execFileSync("git", ["add", "."], { cwd: join(container, "opened") });
 execFileSync("git", ["commit", "--quiet", "-m", "Ahead"], { cwd: join(container, "opened") });
+// What the once-standalone "opened" workspace kept for itself: a personal instruction in its own folder.
+await mkdir(join(container, "opened", ".dimsum"));
+const oldInstruction = { id: "old-personal", kind: "toggle", label: "Old personal", defaultOn: true, text: "Kept in the worktree." };
+await writeFile(join(container, "opened", ".dimsum", "instructions.local.json"), JSON.stringify({ version: 1, instructions: [oldInstruction] }));
 await mkdir(join(repo, ".dimsum"));
 await writeFile(join(repo, ".dimsum", "instructions.local.json"), JSON.stringify({ version: 1, instructions: [] }));
 await writeFile(executable, `#!/bin/sh\nexec ${shellQuote(process.execPath)} ${shellQuote(resolve("scripts/fixtures/composer-cli.mjs"))} "$@"\n`, { mode: 0o755 });
@@ -51,11 +55,12 @@ await writeFile(join(directory, "workbench-state.json"), JSON.stringify({
       { id: "local", workspaceId: "qa", type: "agent", title: "Untitled", state: { ...codex, autoTitle: true } },
       { id: "legacy", workspaceId: "qa", type: "agent", title: "Legacy session", state: { ...codex, cwd: join(container, "wb-legacy"), runIn: { kind: "worktree", branch: "wb/legacy" } } },
     ] },
-    { id: "old", name: "opened", path: join(container, "opened"), activeViewId: "old-terminal", views: [
+    { id: "old", name: "opened", path: join(container, "opened"), disabledInstructionIds: ["turned-off-there"], activeViewId: "old-terminal", views: [
       { id: "old-terminal", workspaceId: "old", type: "terminal", title: "Terminal", state: { providerId: "terminal.local" } },
     ] },
   ],
-  activeWorkspaceId: "qa", personas: [], instructionOptions: [], layout: { leftCollapsed: false, rightCollapsed: true },
+  activeWorkspaceId: "qa", personas: [{ id: "old-persona", name: "Old persona", description: "", instructions: "Be brief.", scope: "workspace", workspaceId: "old" }],
+  instructionOptions: [], layout: { leftCollapsed: false, rightCollapsed: true },
 }));
 await writeFile(join(directory, "execution-trust.json"), JSON.stringify([repo]));
 
@@ -101,6 +106,9 @@ try {
   assert.equal(await level("Legacy session"), "3");
   await tab("Legacy session").waitFor();
   assert.deepEqual(await tabNames(), ["Legacy session"]);
+  // What it kept for itself now belongs to the repository, whose settings its worktrees share.
+  const personal = JSON.parse(await readFile(join(repo, ".dimsum", "instructions.local.json"), "utf8"));
+  assert.deepEqual(personal.instructions.map((item) => item.id), ["old-personal"]);
   await shot("1-migrated");
 
   // + on the repository row: a worktree opened with a terminal, which runs in the worktree.
@@ -180,6 +188,9 @@ try {
 
   // Saved with each worktree under its repository, and restored that way.
   await until(async () => (await savedState()).workspaces.filter((item) => item.parentId === "qa").length === 5, "the state to save");
+  const saved = await savedState();
+  assert.equal(saved.personas.find((item) => item.id === "old-persona").workspaceId, "qa");
+  assert(saved.workspaces.find((item) => item.id === "qa").disabledInstructionIds.includes("turned-off-there"));
   await app.close();
   await launch();
   for (const name of ["Local", "wb-legacy", "opened", "qa/terminal", sessionBranch, "elsewhere"]) assert.equal(await level(name), "2", name);

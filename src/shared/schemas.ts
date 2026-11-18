@@ -108,7 +108,7 @@ export function migratePersistedState(input: unknown): unknown {
 }
 
 type LooseView = { id?: unknown; workspaceId?: unknown; state?: unknown; [key: string]: unknown };
-type LooseWorkspace = { id?: unknown; path?: unknown; kind?: unknown; parentId?: unknown; views?: unknown; activeViewId?: unknown; [key: string]: unknown };
+type LooseWorkspace = { id?: unknown; path?: unknown; kind?: unknown; parentId?: unknown; views?: unknown; activeViewId?: unknown; disabledInstructionIds?: unknown; [key: string]: unknown };
 
 /**
  * Before worktrees were listed in the sidebar, a session that ran in a new worktree stayed a tab of its repository's
@@ -134,13 +134,35 @@ function adoptWorktrees(input: unknown): unknown {
     parents.set(item, parent && parent !== item && isFolder(parent) ? parent : undefined);
   }
   // A worktree of a worktree belongs to the repository at the top; a loop has no top, so its members stand alone.
+  const adopted = new Map<unknown, unknown>();
   for (const item of workspaces) {
     if (!isFolder(item)) continue;
     const seen = new Set([item]);
     let parent = parents.get(item);
     while (parent && parents.get(parent) && !seen.has(parent)) { seen.add(parent); parent = parents.get(parent); }
     const parentId = parent && !seen.has(parent) ? parent.id : undefined;
-    if (item.parentId !== parentId) { item.parentId = parentId; changed = true; }
+    if (item.parentId !== parentId) {
+      if (parentId !== undefined) adopted.set(item.id, parentId);
+      item.parentId = parentId;
+      changed = true;
+    }
+  }
+  // A worktree shares its repository's personas and instructions, so what was kept for it on its own goes to the
+  // repository, and what it had turned off stays off.
+  let { personas, instructionOptions } = source;
+  if (adopted.size) {
+    const repoint = (item: unknown) => {
+      const keyed = item as { workspaceId?: unknown } | null;
+      return keyed && adopted.has(keyed.workspaceId) ? { ...keyed, workspaceId: adopted.get(keyed.workspaceId) } : item;
+    };
+    if (Array.isArray(personas)) personas = personas.map(repoint);
+    if (Array.isArray(instructionOptions)) instructionOptions = instructionOptions.map(repoint);
+    for (const [childId, parentId] of adopted) {
+      const child = byId.get(childId);
+      const parent = byId.get(parentId);
+      const off = Array.isArray(child?.disabledInstructionIds) ? child.disabledInstructionIds : [];
+      if (parent && off.length) parent.disabledInstructionIds = [...new Set([...(Array.isArray(parent.disabledInstructionIds) ? parent.disabledInstructionIds : []), ...off])];
+    }
   }
   let activeWorkspaceId = source.activeWorkspaceId;
   // Tabs working in a worktree of their workspace move into that worktree.
@@ -172,7 +194,7 @@ function adoptWorktrees(input: unknown): unknown {
   }
   if (!changed) return input;
   workspaces = [...workspaces, ...added];
-  return { ...source, workspaces, activeWorkspaceId };
+  return { ...source, workspaces, activeWorkspaceId, ...(adopted.size ? { personas, instructionOptions } : {}) };
 }
 
 function migrateLegacyInstructions(input: unknown): unknown {

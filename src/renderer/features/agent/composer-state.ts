@@ -264,7 +264,9 @@ export function registerComposerContributions(): void {
       draft: entry.draft, attachments: entry.attachments, intent: entry.preview.intent,
     });
   });
-  services.commands.register<ComposerTarget>("agent.composer.send", async (target) => {
+  services.commands.register<ComposerTarget>("agent.composer.send", async (sent) => {
+    // The first send of a session starting in a new worktree comes from the checkout it just left.
+    const target = current(sent);
     const runtime = useAgentRuntimes.getState().sessions[target.viewId];
     if (!runtime || !stateFor(target)?.draft?.trim() || useComposerState.getState().views[target.viewId]?.sending) return;
     // Model and effort are launch arguments. Nothing has gone to this conversation yet, so start it again with the
