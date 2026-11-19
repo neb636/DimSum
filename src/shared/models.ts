@@ -390,6 +390,16 @@ export interface ExistingWorktree {
   branch?: string;
 }
 
+/** An existing worktree with what it takes to decide whether it can go. */
+export interface WorktreeDetails extends ExistingWorktree {
+  /** Files with uncommitted changes, untracked ones included; lost if the worktree is removed. */
+  changes: number;
+  /** Unix ms of the latest commit, checkout, or edit to a changed file there. */
+  lastActivityAt: number;
+  /** Locked against removal (`git worktree lock`). */
+  locked: boolean;
+}
+
 /** `cpu` is percent of one core; memory is resident bytes. */
 export interface ResourceUsage {
   cpu: number;
@@ -535,6 +545,10 @@ export interface WorkbenchApi {
      * was open as a workspace of its own, so its personal files are added to the repository's.
      */
     openWorktree: (root: string, path: string, adopting?: boolean) => Promise<string>;
+    /** `worktrees(root)` with each one's uncommitted changes and latest activity. */
+    worktreeDetails: (root: string) => Promise<WorktreeDetails[]>;
+    /** Deletes one of `worktrees(root)` from disk; its branch is kept. `force`: even with uncommitted changes. */
+    removeWorktree: (root: string, path: string, force?: boolean) => Promise<void>;
     branches: (root: string) => Promise<string[]>;
     /** With `refresh`, first updates from the remote (best effort). */
     baseBranches: (root: string, refresh?: boolean) => Promise<BaseBranches>;

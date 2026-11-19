@@ -19,6 +19,7 @@ import {
   baseBranchesSchema,
   createWorktreeSchema,
   openWorktreeSchema,
+  removeWorktreeSchema,
   fileOperationSchema,
   fileAtSchema,
   fileCreateSchema,
@@ -148,7 +149,7 @@ export function handle(channel: string, listener: (event: Electron.IpcMainInvoke
   ipcMain.handle(channel, (event, input: unknown) => {
     assertAppSender(event);
     assertInputBudget(input);
-    const executing = new Set<string>([IPC.sourceControlCommit, IPC.sourceControlRunAction, IPC.sourceControlStage, IPC.sourceControlUnstage, IPC.sourceControlDiscard, IPC.sourceControlBranchAction, IPC.sourceControlRevert, IPC.sourceControlStashAction, IPC.sourceControlCreateWorktree, IPC.sourceControlOpenWorktree, IPC.sourceControlCheckout, IPC.sourceControlGenerateCommitMessage, IPC.sourceControlPreviewCommitMessage]);
+    const executing = new Set<string>([IPC.sourceControlCommit, IPC.sourceControlRunAction, IPC.sourceControlStage, IPC.sourceControlUnstage, IPC.sourceControlDiscard, IPC.sourceControlBranchAction, IPC.sourceControlRevert, IPC.sourceControlStashAction, IPC.sourceControlCreateWorktree, IPC.sourceControlOpenWorktree, IPC.sourceControlRemoveWorktree, IPC.sourceControlCheckout, IPC.sourceControlGenerateCommitMessage, IPC.sourceControlPreviewCommitMessage]);
     if (executing.has(channel) || (channel === IPC.sourceControlBaseBranches && baseBranchesSchema.parse(input).refresh)) {
       const { root } = workspaceRootSchema.parse(input);
       if (!resolveExecutionRoot) throw new Error("Workspace authorization is unavailable.");
@@ -378,18 +379,30 @@ export function registerIpc(ptyManager: PtyManager, agentSessionManager: AgentSe
   });
   handle(IPC.sourceControlWorktrees, async (_event, input: unknown) =>
     workspace.sourceControl.worktrees(await allowedRoot(workspaceRootSchema.parse(input).root)));
-  // Only a checkout the repository itself lists can become a workspace this way; any other folder needs Choose Directory.
-  handle(IPC.sourceControlOpenWorktree, async (_event, input: unknown) => {
-    const { root, path: requested, adopting } = openWorktreeSchema.parse(input);
-    const listed = await workspace.sourceControl.worktrees(await allowedRoot(root));
+  // Only a checkout the repository itself lists can be opened or removed through these.
+  const listedWorktree = async (root: string, requested: string) => {
+    const listed = await workspace.sourceControl.worktrees(root);
     const wanted = await fs.realpath(requested).catch(() => undefined);
     const resolved = await Promise.all(listed.map((entry) => fs.realpath(entry.path).catch(() => undefined)));
     const match = wanted ? listed.find((_entry, index) => resolved[index] === wanted) : undefined;
     if (!match) throw new Error("That folder is not a worktree of this repository.");
+    return match;
+  };
+  handle(IPC.sourceControlOpenWorktree, async (_event, input: unknown) => {
+    const { root, path: requested, adopting } = openWorktreeSchema.parse(input);
+    const match = await listedWorktree(await allowedRoot(root), requested);
     workspace.roots.add(match.path, root);
     // A workspace of its own becoming this worktree: its personal files join the repository's, which it reads from now.
     if (adopting) await mergePersonalFiles(match.path, root);
     return match.path;
+  });
+  handle(IPC.sourceControlWorktreeDetails, async (_event, input: unknown) =>
+    workspace.sourceControl.worktreeDetails(await allowedRoot(workspaceRootSchema.parse(input).root)));
+  handle(IPC.sourceControlRemoveWorktree, async (_event, input: unknown) => {
+    const { root, path: requested, force } = removeWorktreeSchema.parse(input);
+    const allowed = await allowedRoot(root);
+    const match = await listedWorktree(allowed, requested);
+    await workspace.sourceControl.removeWorktree(allowed, match.path, Boolean(force));
   });
   handle(IPC.sourceControlBranches, async (_event, input: unknown) =>
     workspace.sourceControl.branches(await allowedRoot(workspaceRootSchema.parse(input).root)));

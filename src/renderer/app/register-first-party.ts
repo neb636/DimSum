@@ -150,7 +150,10 @@ const workbench = defineExtension({
       const worktree = Boolean(workspace.parentId);
       return [
         ...services.views.list(workspace.id).filter((d) => d.creatable !== false).map((d) => ({ id: `new-${d.id}`, label: `New ${d.label}`, section: "create", run: () => services.commands.execute("view.create", { workspaceId: workspace.id, viewType: d.id }) })),
-        ...(supportsWorktrees(workspace) ? [{ id: "new-worktree", label: "New Worktree…", section: "create", run: () => services.commands.execute("worktree.new", { workspaceId: workspace.id }) }] : []),
+        ...(supportsWorktrees(workspace) ? [
+          { id: "new-worktree", label: "New Worktree…", section: "create", run: () => services.commands.execute("worktree.new", { workspaceId: workspace.id }) },
+          { id: "manage-worktrees", label: "Manage Worktrees…", section: "create", run: () => services.commands.execute("worktree.manage", { workspaceId: workspace.id }) },
+        ] : []),
         ...[{ id: "reveal", label: "Reveal Folder", command: "workspace.reveal" }, { id: "terminal", label: "Open in Terminal", command: "workspace.terminal" }, { id: "copy", label: "Copy Path", command: "workspace.copyPath" }].map((item) => ({ ...item, section: "workspace", run: () => services.commands.execute(item.command, { workspaceId: workspace.id }) })),
         // A worktree is shown with its repository's icon row above it, so only the repository has one.
         ...(worktree ? [] : [

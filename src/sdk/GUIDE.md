@@ -94,7 +94,7 @@ Rules:
 | `ctx.views.register(def)` | A view type. It shows in the new-view (+) menu unless `creatable: false`. A view is saved UI state (`view.state`) and doesn't need a running process. |
 | `ctx.panels.register(def)` | A right-sidebar panel. |
 | `ctx.widgets.register(def)` | A component in a slot: `statusbar.start`, `statusbar.end`, `sidebar.footer`, `sidebar.workspace.meta`, `settings.general` or `agent.composer.toolbar`. |
-| `ctx.commands.register(id, fn)` / `ctx.commands.execute(id, args)` | Commands. The app's own include `view.create`, `view.activate`, `view.close`, `file.open`, `agent.composer.attach` and `worktree.new` (`{ workspaceId }`, opens the New worktree dialog). |
+| `ctx.commands.register(id, fn)` / `ctx.commands.execute(id, args)` | Commands. The app's own include `view.create`, `view.activate`, `view.close`, `file.open`, `agent.composer.attach`, `worktree.new` (`{ workspaceId }`, opens the New worktree dialog) and `worktree.manage` (`{ workspaceId }`, opens the Manage worktrees dialog). |
 | `ctx.promptMenus.register(menu)` | A composer menu whose options add text before or after the prompt. Build one with `promptMenu`, `group`, `toggle`, `select`, `multiSelect`, `textInput` and `choice`. Show an option only sometimes with `when` and the conditions `allOf`, `anyOf`, `not`, `isOn`, `isChoice` and `harness`. |
 | `ctx.promptContributors.register(c)` | Adds text to every prompt (context, attachments). |
 | `ctx.contextMenus.register(c)` | Items for the menus of workspaces, views, files and selected text. |

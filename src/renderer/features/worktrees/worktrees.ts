@@ -42,6 +42,9 @@ export function useWorktreeSupport(workspace: Workspace | undefined): boolean {
 /** The repository the New worktree dialog is open for. */
 export const useWorktreeDialog = create<{ repositoryId?: string }>(() => ({}));
 
+/** The repository the Manage worktrees dialog is open for. */
+export const useWorktreeManager = create<{ repositoryId?: string }>(() => ({}));
+
 export type WorktreeOpening = "agent" | "terminal" | null;
 
 function repositoryFor(workspaceId: string): Workspace {
@@ -106,9 +109,39 @@ export async function openWorktree(workspaceId: string, path: string, branch?: s
   return id;
 }
 
+/** The workspace showing the checkout at `path` (a worktree of the repository, or a folder opened on its own), if any. */
+export function workspaceAt(repositoryId: string, path: string): Workspace | undefined {
+  return useWorkbenchStore.getState().workspaces.find((item) => !isFilesWorkspace(item) && item.id !== repositoryId
+    && (item.parentId === repositoryId || !item.parentId) && samePath(item.path, path));
+}
+
+/**
+ * Deletes one of the repository's worktrees from disk, keeping its branch. A worktree open in the sidebar is closed
+ * first, stopping its sessions and terminals, so nothing is left running in a folder that is gone. The person has
+ * already confirmed; `force` also loses uncommitted changes.
+ */
+export async function removeWorktree(repositoryId: string, path: string, force: boolean): Promise<void> {
+  const repository = repositoryFor(repositoryId);
+  const open = workspaceAt(repository.id, path);
+  if (open) {
+    for (const view of open.views) {
+      if (!await services.commands.execute<boolean>("view.close", { workspaceId: open.id, viewId: view.id, confirmed: true })) {
+        throw new Error(`A tab in ${open.name} was kept open.`);
+      }
+    }
+    useWorkbenchStore.getState().removeWorkspace(open.id);
+  }
+  await window.workbench.sourceControl.removeWorktree(repository.path, path, force);
+}
+
 export function registerWorktrees(ctx: ExtensionContext): void {
   ctx.commands.register<{ workspaceId: string }>("worktree.new", ({ workspaceId }) => {
+    useWorktreeManager.setState({ repositoryId: undefined });
     useWorktreeDialog.setState({ repositoryId: repositoryFor(workspaceId).id });
+  });
+  ctx.commands.register<{ workspaceId: string }>("worktree.manage", ({ workspaceId }) => {
+    useWorktreeDialog.setState({ repositoryId: undefined });
+    useWorktreeManager.setState({ repositoryId: repositoryFor(workspaceId).id });
   });
   ctx.commands.register<{ workspaceId: string; branch: string; base?: string; open?: WorktreeOpening }>("worktree.create",
     async (args) => (await createWorktree(args)).workspaceId);

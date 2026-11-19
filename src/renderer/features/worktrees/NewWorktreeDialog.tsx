@@ -4,6 +4,7 @@ import type { ExistingWorktree, Workspace } from "../../../shared/models";
 import { isFilesWorkspace } from "../../../shared/files-workspace";
 import { suggestedBranch, worktreeFolderPreview } from "../../../shared/workspace-tree";
 import { errorMessage } from "../../core/errors";
+import { services } from "../../core/services";
 import { useWorkbenchStore } from "../../state/workbench-store";
 import { AgentIcon, BranchIcon, CloseIcon, MinusIcon, TerminalIcon } from "../../ui/icons";
 import { IconButton } from "../../ui/controls";
@@ -111,6 +112,8 @@ function WorktreeForm({ repository, close }: { repository: Workspace; close: () 
       </ul>
     </section>}
     <div className="dialog-actions">
+      <Button className="link-button worktree-manage-link" isDisabled={busy}
+        onPress={() => void services.commands.execute("worktree.manage", { workspaceId: repository.id })}>Manage worktrees…</Button>
       <Button className="wb-button" onPress={close}>Cancel</Button>
       <Button type="submit" className="wb-button primary-button" isDisabled={!name || taken || busy}>{busy ? "Creating…" : "Create worktree"}</Button>
     </div>
