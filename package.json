@@ -29,7 +29,8 @@
     "qa:security": "npm run build && node scripts/qa-security.mjs",
     "qa:extensions": "npm run build && node scripts/qa-extensions.mjs",
     "qa:local-preview": "npm run build && node scripts/qa-local-preview.mjs",
-    "qa:worktrees": "npm run build && node scripts/qa-worktrees.mjs"
+    "qa:worktrees": "npm run build && node scripts/qa-worktrees.mjs",
+    "qa:worktree-cleanup": "npm run build && node scripts/qa-worktree-cleanup.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",

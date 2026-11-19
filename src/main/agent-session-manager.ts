@@ -1,3 +1,4 @@
+import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { WebContents } from "electron";
 import { Terminal } from "@xterm/headless";
@@ -284,6 +285,13 @@ export class AgentSessionManager {
     return ended;
   }
   terminateForOwner(owner: WebContents): void { for (const s of [...this.sessions.values()]) if (s.owner === owner) void this.terminate(s.id); }
+  /** Ends every session running in `folder` (or below it), and resolves once they, and any others already ending, are gone. */
+  terminateIn(folder: string): Promise<void> {
+    const inside = (cwd: string) => cwd === folder || cwd.startsWith(folder.endsWith(path.sep) ? folder : folder + path.sep);
+    for (const listed of this.list()) if (inside(listed.cwd)) void this.terminate(listed.sessionId);
+    return Promise.allSettled([...this.ending]).then(() => undefined);
+  }
+
   /** Ends every session, and resolves once those already ending are gone too. */
   terminateAll(graceMs?: number): Promise<void> {
     for (const id of [...this.sessions.keys()]) void this.terminate(id, undefined, graceMs);

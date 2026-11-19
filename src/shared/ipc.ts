@@ -68,6 +68,8 @@ export const IPC = {
   sourceControlCreateWorktree: "source-control:create-worktree",
   sourceControlWorktrees: "source-control:worktrees",
   sourceControlOpenWorktree: "source-control:open-worktree",
+  sourceControlWorktreeDetails: "source-control:worktree-details",
+  sourceControlRemoveWorktree: "source-control:remove-worktree",
   sourceControlBranches: "source-control:branches",
   sourceControlBaseBranches: "source-control:base-branches",
   sourceControlCheckout: "source-control:checkout",

@@ -5,6 +5,7 @@ import { openPanel } from "../features/explorer/explorer-store";
 import { useContributions } from "../core/registry";
 import { QuickOpen } from "../features/files/QuickOpen";
 import { NewWorktreeDialog } from "../features/worktrees/NewWorktreeDialog";
+import { ManageWorktreesDialog } from "../features/worktrees/ManageWorktreesDialog";
 import { ConfirmDialogHost } from "../ui/ConfirmDialog";
 import { useWorkbenchStore } from "../state/workbench-store";
 import { isFilesWorkspace } from "../../shared/files-workspace";
@@ -121,6 +122,7 @@ export function WorkbenchShell() {
     <StatusBar />
     <QuickOpen />
     <NewWorktreeDialog />
+    <ManageWorktreesDialog />
     <ConfirmDialogHost />
   </div>;
 }

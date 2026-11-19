@@ -1,7 +1,7 @@
 import path from "node:path";
 import type {
   BaseBranches, DiffBase, SearchOptions, SearchResult, SourceControlAction, SourceControlBranchAction, SourceControlCommitFile, SourceControlCommitFileContents,
-  SourceControlCommitOptions, SourceControlFeature, SourceControlHistory, SourceControlStash, SourceControlStashAction, SourceControlStatus, WorktreeResult, ExistingWorktree,
+  SourceControlCommitOptions, SourceControlFeature, SourceControlHistory, SourceControlStash, SourceControlStashAction, SourceControlStatus, WorktreeResult, ExistingWorktree, WorktreeDetails,
 } from "../../shared/models";
 import { worktreeContainer } from "../workspace-files";
 
@@ -45,6 +45,10 @@ export interface SourceControlProvider {
   createWorktree: (root: string, branch: string, target: string, base?: string) => Promise<WorktreeResult>;
   /** The repository's other checkouts, the folder asked about excluded. */
   worktrees?: (root: string) => Promise<ExistingWorktree[]>;
+  /** `worktrees(root)` with each one's uncommitted changes and latest activity. */
+  worktreeDetails?: (root: string) => Promise<WorktreeDetails[]>;
+  /** Deletes a checkout `worktrees(root)` listed, keeping its branch; refuses one with uncommitted changes unless `force`. */
+  removeWorktree?: (root: string, worktree: string, force: boolean) => Promise<void>;
   branches: (root: string) => Promise<string[]>;
   /** Every branch a worktree can start from and which is the default; `refresh` first updates from the remote, best effort. */
   baseBranches: (root: string, refresh?: boolean) => Promise<BaseBranches>;
@@ -206,6 +210,17 @@ export class SourceControlService {
   async worktrees(root: string): Promise<ExistingWorktree[]> {
     const provider = await this.providerFor(root);
     return provider?.worktrees ? provider.worktrees(root) : [];
+  }
+
+  async worktreeDetails(root: string): Promise<WorktreeDetails[]> {
+    const provider = await this.providerFor(root);
+    return provider?.worktreeDetails ? provider.worktreeDetails(root) : [];
+  }
+
+  async removeWorktree(root: string, worktree: string, force: boolean): Promise<void> {
+    const provider = await this.require(root);
+    if (!provider.removeWorktree) throw unsupported(provider);
+    return provider.removeWorktree(root, worktree, force);
   }
 
   private async require(root: string): Promise<SourceControlProvider> {

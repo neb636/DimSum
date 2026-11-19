@@ -1,10 +1,10 @@
 import { execFile, spawn, type ChildProcess } from "node:child_process";
-import { access, cp, mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
+import { access, cp, mkdir, mkdtemp, realpath, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type {
   BaseBranch, BaseBranches, DiffBase, ExistingWorktree, SearchMatch, SearchOptions, SearchResult, SourceControlAction, SourceControlBranchAction, SourceControlChange, SourceControlCommit,
-  SourceControlCommitFile, SourceControlCommitFileContents, SourceControlHistory, SourceControlOperation, SourceControlStash, SourceControlStashAction,
+  SourceControlCommitFile, SourceControlCommitFileContents, SourceControlHistory, SourceControlOperation, SourceControlStash, SourceControlStashAction, WorktreeDetails,
 } from "../../shared/models";
 import { executablePath } from "../executables";
 import type { PendingChanges, ProviderStatus, SourceControlProvider } from "../source-control/source-control-provider";
@@ -165,15 +165,16 @@ function requireCommitId(id: string): void {
 }
 
 /** `git worktree list --porcelain -z`: NUL-separated attribute lines, each entry ended by an empty one. */
-function parseWorktreeList(output: string): { path: string; branch?: string; bare: boolean; prunable: boolean }[] {
-  const entries: { path: string; branch?: string; bare: boolean; prunable: boolean }[] = [];
+function parseWorktreeList(output: string): { path: string; branch?: string; bare: boolean; prunable: boolean; locked: boolean }[] {
+  const entries: { path: string; branch?: string; bare: boolean; prunable: boolean; locked: boolean }[] = [];
   let current: (typeof entries)[number] | undefined;
   for (const line of output.split("\0")) {
-    if (line.startsWith("worktree ")) entries.push(current = { path: line.slice(9), bare: false, prunable: false });
+    if (line.startsWith("worktree ")) entries.push(current = { path: line.slice(9), bare: false, prunable: false, locked: false });
     else if (!current) continue;
     else if (line.startsWith("branch ")) current.branch = line.slice(7).replace(/^refs\/heads\//, "");
     else if (line === "bare") current.bare = true;
     else if (line === "prunable" || line.startsWith("prunable ")) current.prunable = true;
+    else if (line === "locked" || line.startsWith("locked ")) current.locked = true;
   }
   return entries;
 }
@@ -387,14 +388,43 @@ export class GitSourceControlProvider implements SourceControlProvider {
 
   /** `git worktree list`, without this checkout, bare entries, or ones whose folder is gone. */
   async worktrees(root: string): Promise<ExistingWorktree[]> {
+    return (await this.otherCheckouts(root)).map(({ path: folder, branch }) => ({ path: folder, ...(branch ? { branch } : {}) }));
+  }
+
+  private async otherCheckouts(root: string): Promise<{ path: string; branch?: string; locked: boolean }[]> {
     const here = await realpath(root);
     const entries = parseWorktreeList(await this.git(root, ["worktree", "list", "--porcelain", "-z"]));
     const listed = await Promise.all(entries.map(async (entry) => {
       if (entry.bare || entry.prunable) return undefined;
       const resolved = await realpath(entry.path).catch(() => undefined);
-      return resolved && resolved !== here ? { path: entry.path, ...(entry.branch ? { branch: entry.branch } : {}) } : undefined;
+      return resolved && resolved !== here ? entry : undefined;
     }));
-    return listed.filter((entry): entry is ExistingWorktree => Boolean(entry));
+    return listed.filter((entry) => entry !== undefined);
+  }
+
+  async worktreeDetails(root: string): Promise<WorktreeDetails[]> {
+    return Promise.all((await this.otherCheckouts(root)).map(async ({ path: folder, branch, locked }) =>
+      ({ path: folder, ...(branch ? { branch } : {}), locked, ...(await this.worktreeActivity(folder)) })));
+  }
+
+  /**
+   * Uncommitted changes, and when the checkout was last worked in: the newest of its HEAD reflog (written on creation,
+   * every commit and every checkout there) and its changed files' modification times.
+   */
+  private async worktreeActivity(worktree: string): Promise<{ changes: number; lastActivityAt: number }> {
+    const [{ changes }, gitDir] = await Promise.all([this.status(worktree), this.git(worktree, ["rev-parse", "--absolute-git-dir"]).then((output) => output.trim())]);
+    const modified = async (file: string) => (await stat(file).catch(() => undefined))?.mtimeMs ?? 0;
+    const times = await Promise.all([
+      modified(path.join(gitDir, "logs", "HEAD")),
+      modified(path.join(gitDir, "HEAD")),
+      // Enough to tell recent work from none; a checkout with thousands of changed files is plainly not abandoned.
+      ...changes.slice(0, 200).map((change) => modified(path.join(worktree, change.path))),
+    ]);
+    return { changes: changes.length, lastActivityAt: Math.max(...times) };
+  }
+
+  async removeWorktree(root: string, worktree: string, force: boolean): Promise<void> {
+    await this.git(root, ["worktree", "remove", ...(force ? ["--force"] : []), "--", worktree]);
   }
 
   /** The ref comes from the renderer, so it must name an existing branch; one on origin is first brought up to date. */

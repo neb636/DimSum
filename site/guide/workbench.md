@@ -21,6 +21,15 @@ To make a worktree, select the **+** on the workspace's row (or **New Worktree�
 
 Right-click a worktree and choose **Close Worktree** to take it out of the sidebar. Its open views close, but its folder and branch stay on disk, and you can reopen it from the same dialog. Worktrees share the workspace's personas, your personal instructions and settings, and which instructions you turned off. Instructions shared in the repository come from the worktree's own branch.
 
+#### Cleaning up worktrees
+
+Worktrees add up, especially when every agent session gets one. Right-click a workspace and choose **Manage Worktrees…** (or select **Manage worktrees…** in the New worktree dialog) to see every worktree of the repository, least recently used first, with which ones are open in the sidebar, have uncommitted changes, or are locked.
+
+- **Clean up idle worktrees** deletes, in one go, every worktree with no commits or file changes in the last week, 2 weeks or month. It leaves alone any that have uncommitted changes or are open in the sidebar; hover the button to see which ones it will delete.
+- Select worktrees with their checkboxes and choose **Delete** to delete several at once, or use the trash button on a row to delete one.
+
+Deleting a worktree removes its folder from disk, after you confirm, and cannot be undone; its branch is kept. A worktree with uncommitted changes can still be deleted, and the confirmation says those changes will be lost. One open in the sidebar is closed first, stopping its sessions and terminals. Locked worktrees can't be deleted here.
+
 Files you open on their own, from Finder or with <kbd>⌘</kbd><kbd>O</kbd>, are collected under a separate entry that only holds files. The **Settings** button is at the bottom of the sidebar.
 
 ## Views and tabs
