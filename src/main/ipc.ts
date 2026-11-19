@@ -402,6 +402,10 @@ export function registerIpc(ptyManager: PtyManager, agentSessionManager: AgentSe
     const { root, path: requested, force } = removeWorktreeSchema.parse(input);
     const allowed = await allowedRoot(root);
     const match = await listedWorktree(allowed, requested);
+    // Nothing may still be running there, or writing into it, as the folder goes: the renderer has already closed its
+    // tabs, and this waits until their processes are gone.
+    const folder = await fs.realpath(match.path);
+    await Promise.all([ptyManager.terminateIn(folder), agentSessionManager.terminateIn(folder), ptyManager.terminateIn(match.path), agentSessionManager.terminateIn(match.path)]);
     await workspace.sourceControl.removeWorktree(allowed, match.path, Boolean(force));
   });
   handle(IPC.sourceControlBranches, async (_event, input: unknown) =>

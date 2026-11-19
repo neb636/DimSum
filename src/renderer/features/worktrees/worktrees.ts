@@ -109,10 +109,9 @@ export async function openWorktree(workspaceId: string, path: string, branch?: s
   return id;
 }
 
-/** The workspace showing the checkout at `path` (a worktree of the repository, or a folder opened on its own), if any. */
+/** The workspace showing the checkout at `path`, wherever it sits in the sidebar (another repository workspace may list it). */
 export function workspaceAt(repositoryId: string, path: string): Workspace | undefined {
-  return useWorkbenchStore.getState().workspaces.find((item) => !isFilesWorkspace(item) && item.id !== repositoryId
-    && (item.parentId === repositoryId || !item.parentId) && samePath(item.path, path));
+  return useWorkbenchStore.getState().workspaces.find((item) => !isFilesWorkspace(item) && item.id !== repositoryId && samePath(item.path, path));
 }
 
 /**
@@ -124,9 +123,13 @@ export async function removeWorktree(repositoryId: string, path: string, force: 
   const repository = repositoryFor(repositoryId);
   const open = workspaceAt(repository.id, path);
   if (open) {
-    for (const view of open.views) {
-      if (!await services.commands.execute<boolean>("view.close", { workspaceId: open.id, viewId: view.id, confirmed: true })) {
-        throw new Error(`A tab in ${open.name} was kept open.`);
+    // Removing a workspace takes the worktrees listed under it along, so their tabs close too.
+    const owners = [...useWorkbenchStore.getState().workspaces.filter((item) => item.parentId === open.id), open];
+    for (const owner of owners) {
+      for (const view of owner.views) {
+        if (!await services.commands.execute<boolean>("view.close", { workspaceId: owner.id, viewId: view.id, confirmed: true })) {
+          throw new Error(`A tab in ${owner.name} was kept open.`);
+        }
       }
     }
     useWorkbenchStore.getState().removeWorkspace(open.id);

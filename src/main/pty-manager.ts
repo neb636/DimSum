@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { WebContents } from "electron";
 import * as pty from "node-pty";
 import { randomUUID } from "node:crypto";
@@ -126,6 +127,13 @@ export class PtyManager {
 
   terminateForOwner(owner: WebContents): void {
     for (const session of [...this.sessions.values()]) if (session.owner === owner) void this.terminate(session.id);
+  }
+
+  /** Ends every session running in `folder` (or below it), and resolves once they, and any others already ending, are gone. */
+  terminateIn(folder: string): Promise<void> {
+    const inside = (cwd: string) => cwd === folder || cwd.startsWith(folder.endsWith(path.sep) ? folder : folder + path.sep);
+    for (const listed of this.list()) if (inside(listed.cwd)) void this.terminate(listed.sessionId);
+    return Promise.allSettled([...this.ending]).then(() => undefined);
   }
 
   /** Ends every session, and resolves once those already ending are gone too. */
