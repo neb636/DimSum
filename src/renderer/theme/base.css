@@ -482,7 +482,7 @@ svg { flex: none; }
 .instruction-row.is-off .instruction-row-copy { opacity: .55; }
 .instruction-row-switch { display: inline-flex; outline: none; }
 .instruction-row-switch[data-selected] .switch-track { background: var(--wb-accent); box-shadow: none; }
-.instruction-row-switch[data-selected] .switch-thumb { transform: translateX(12px); }
+.instruction-row-switch[data-selected] .switch-thumb { background: var(--wb-accent-text); transform: translateX(12px); }
 .instruction-row-switch[data-focus-visible] .switch-track { box-shadow: 0 0 0 3px var(--wb-focus-ring); }
 .instruction-file-link { justify-self: start; font-size: var(--wb-font-size-sm); }
 .instruction-file-error { padding: var(--wb-space-1-5) var(--wb-space-2); border-radius: var(--wb-radius-sm); background: var(--wb-danger-soft); color: var(--wb-status-error); font-size: var(--wb-font-size-xs); line-height: 15px; }
