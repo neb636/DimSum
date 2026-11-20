@@ -75,7 +75,9 @@ Rules:
   `.dimsum/node_modules`) and are bundled with the extension. Files outside the workspace can't be imported.
 - **Styling.** Use the app's semantic CSS variables (`--wb-text-primary`, `--wb-text-secondary`, `--wb-bg-panel`,
   `--wb-bg-raised`, `--wb-border`, `--wb-accent`, `--wb-status-error`, ...) rather than literal colours, so light
-  and dark themes both work.
+  and dark themes both work. Size things from the same scales the app uses so your UI lines up with it: spacing
+  `--wb-space-1` … `--wb-space-6` (4 to 24px), type `--wb-font-size-xs` … `--wb-font-size-xl`, corners
+  `--wb-radius-xs` … `--wb-radius-2xl`, and control heights `--wb-control-sm|md|lg`.
 - **Clean-up.** Everything registered through `ctx` is removed when the extension reloads or is turned off. If you
   start your own timers or listeners, push a `{ dispose() }` onto `ctx.subscriptions` or return one from `activate`.
 - **Failure.** If `activate` throws, nothing it registered stays behind and the Extensions panel shows the error.

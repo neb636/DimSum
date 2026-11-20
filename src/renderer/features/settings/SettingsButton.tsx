@@ -11,7 +11,7 @@ export function SettingsButton() {
   return <DialogTrigger>
     <AriaButton className="sidebar-nav-item"><SettingsIcon size={15} /><span>Settings</span></AriaButton>
     <ModalOverlay className="wb-modal-overlay" isDismissable>
-      <Modal className="wb-modal">
+      <Modal className="wb-modal settings-modal">
         <Dialog aria-label="Settings" className="wb-dialog">
           {({ close }) => <>
             <div className="dialog-header"><div><h2>Settings</h2><p>Built-in AI, prompt composer personas and instructions.</p></div><Button onPress={close}>Done</Button></div>

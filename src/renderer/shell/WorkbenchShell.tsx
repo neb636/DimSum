@@ -9,7 +9,9 @@ import { ManageWorktreesDialog } from "../features/worktrees/ManageWorktreesDial
 import { ConfirmDialogHost } from "../ui/ConfirmDialog";
 import { useWorkbenchStore } from "../state/workbench-store";
 import { isFilesWorkspace } from "../../shared/files-workspace";
-import { AgentIcon, FolderIcon, PlusIcon, TerminalIcon } from "../ui/icons";
+import { AgentIcon, FileIcon, LayersIcon, PlusIcon, TerminalIcon } from "../ui/icons";
+import { APP_NAME } from "../../shared/app-identity";
+import appIcon from "../../../build/icons/256x256.png";
 import { Button } from "../ui/controls";
 import { LeftSidebar } from "./LeftSidebar";
 import { RightSidebar } from "./RightSidebar";
@@ -63,8 +65,8 @@ export function WorkbenchShell() {
     else if (command === "find-in-files") openPanel("files", { search: "contents" });
   }), []);
 
-  if (startupError) return <div className="launch-screen" role="alert"><h1>Could not open saved workbench</h1><p>{startupError}</p><p>Your saved profile has not been replaced. Resolve the saved profile error and reopen Workbench.</p></div>;
-  if (!isHydrated) return <div className="launch-screen"><div className="brand-mark large"><span>AW</span></div><p>Opening workbench…</p></div>;
+  if (startupError) return <div className="launch-screen" role="alert"><img className="brand-mark" src={appIcon} alt="" /><h1>Could not open saved workbench</h1><p>{startupError}</p><p>Your saved profile has not been replaced. Resolve the saved profile error and reopen Workbench.</p></div>;
+  if (!isHydrated) return <div className="launch-screen"><img className="brand-mark large" src={appIcon} alt={APP_NAME} /><p>Opening {APP_NAME}…</p></div>;
 
   return <div className={`app-shell ${layout.leftCollapsed ? "is-left-collapsed" : ""}`}>
     {persistenceError && <p className="confirm-warning" role="alert">Changes could not be saved: {persistenceError}</p>}
@@ -87,7 +89,7 @@ export function WorkbenchShell() {
           <div className="active-view-region">
             {!activeWorkspace ? (
               <div className="welcome-view">
-                <div className="welcome-icon"><FolderIcon size={25} /></div>
+                <img className="brand-mark" src={appIcon} alt="" />
                 <h1>Bring your work into one place</h1>
                 <p>Add a local folder to create a workspace. Everything stays on this machine.</p>
                 <Button className="primary-button" onPress={() => void services.commands.execute("workspace.add")}><PlusIcon size={16} /> Add workspace</Button>
@@ -95,13 +97,14 @@ export function WorkbenchShell() {
             ) : activeView && definition ? (
               <definition.component key={activeView.id} view={activeView} workspace={activeWorkspace} />
             ) : activeView ? (
-              <div className="missing-view"><h2>View unavailable</h2><p>No view is registered for <code>{activeView.type}</code>.</p>
+              <div className="missing-view"><div className="empty-icon"><LayersIcon size={22} /></div><h2>View unavailable</h2><p>No view is registered for <code>{activeView.type}</code>.</p>
                 {activeView.type.includes(".") && <><p>It may come from an extension that isn’t loaded in this workspace yet.</p>
                   <Button className="primary-button" onPress={() => openPanel("extensions")}>Show extensions</Button></>}</div>
             ) : isFilesWorkspace(activeWorkspace) ? (
-              <div className="empty-workspace"><h2>No files open</h2><p>Files you open from Finder appear here.</p></div>
+              <div className="empty-workspace"><div className="empty-icon"><FileIcon size={22} /></div><h2>No files open</h2><p>Files you open from Finder appear here.</p></div>
             ) : (
               <div className="empty-workspace">
+                <div className="empty-icon"><LayersIcon size={22} /></div>
                 <h2>Open a view</h2><p>Nothing is open in {activeWorkspace.name}.</p>
                 <div className="empty-actions">
                   <Button onPress={() => void services.commands.execute("view.create", { workspaceId: activeWorkspace.id, viewType: "agent" })}><AgentIcon size={16} />Agent session</Button>

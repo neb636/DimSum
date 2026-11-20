@@ -92,7 +92,7 @@ export function SessionLauncher({ workspace, state, providers, selected, busy, n
     {error && <p role="alert" className="agent-error">{error}</p>}
     <div className="launcher-actions">
       <Button isDisabled={busy || !available} onPress={() => onStart(true)}>Resume previous…</Button>
-      <Button isDisabled={busy || !available || needsModel} onPress={() => onStart(false)}>{busy ? "Starting…" : "Start session"}</Button>
+      <Button className="primary-button" isDisabled={busy || !available || needsModel} onPress={() => onStart(false)}>{busy ? "Starting…" : "Start session"}</Button>
     </div>
   </section>;
 }
