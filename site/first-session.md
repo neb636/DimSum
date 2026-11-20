@@ -14,7 +14,7 @@ Create a new **Agent session** view in the workspace. The launcher asks for:
 - **Run in**: where the agent works.
   - **Local checkout** (the default) runs the agent in the folder the session was opened in: the workspace itself, or the worktree whose tabs it's in (shown as **This worktree**).
   - **New worktree** (in a Git repository) gives the session its own branch and folder, next to the workspace in `<workspace>-worktrees/`. It is created from the default branch, or from a branch you pick under **Create from**. When the session starts, the worktree appears under the workspace in the sidebar and the session moves into it.
-- **Model**: choose one for each new conversation. **Start session** stays disabled until you do.
+- **Model**: choose one for each new conversation. **Start session** appears once you do.
 
 Select **Start session**. The CLI starts in the terminal, and the composer appears below it.
 

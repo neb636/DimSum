@@ -15,7 +15,7 @@ import { prepareSessionFolder } from "./composer-state";
 import { SessionLauncher } from "./SessionLauncher";
 import { SessionResume } from "./SessionResume";
 import { agentRuntimeStatus } from "./session-status";
-import { TerminalSurface, type TerminalSurfaceHandle } from "../terminal/TerminalSurface";
+import { TerminalSurface } from "../terminal/TerminalSurface";
 
 export function AgentView({ view, workspace }: ViewComponentProps) {
   const state = (view.state ?? {}) as AgentViewState;
@@ -25,7 +25,6 @@ export function AgentView({ view, workspace }: ViewComponentProps) {
   const [providers, setProviders] = useState<AgentProviderInfo[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const terminalRef = useRef<TerminalSurfaceHandle>(null);
   const layoutRef = useRef<HTMLElement>(null);
   const [composerMinimum, setComposerMinimum] = useState(40);
   const hasAttachments = Boolean(state.attachments?.length);
@@ -63,11 +62,10 @@ export function AgentView({ view, workspace }: ViewComponentProps) {
     status: runtime.status,
     display: agentRuntimeStatus(runtime),
     interrupt: () => runtime.controller.interrupt(),
-    focusTerminal: () => terminalRef.current?.focus(),
   };
   const conversation = savedConversation(state);
   const top = runtime
-    ? <div className="terminal-card"><TerminalSurface controller={runtime.controller} ref={terminalRef}
+    ? <div className="terminal-card"><TerminalSurface controller={runtime.controller}
       root={state.cwd ?? workspace.path} onOpenPath={(path, line) => void services.commands.execute("file.open", { workspaceId: workspace.id, root: state.cwd ?? workspace.path, path, line, preview: true })} /></div>
     : conversation ? <SessionResume workspaceId={workspace.id} viewId={view.id} location={state.cwd ?? workspace.path}
         provider={providers.find((p) => p.id === conversation.providerId)} />

@@ -24,7 +24,7 @@ import { MAX_ATTACHMENTS } from "../../../shared/prompt-attachments";
 import { isUnusedConversation, useAgentRuntimes } from "../../core/agent-runtimes";
 import { savedConversation } from "../../../shared/agent-conversations";
 import { modelLabel, modelSettings, needsModelChoice, useAgentModels } from "./agent-models";
-import { clearComposerResult, composedPrompt, emptyComposerRuntime, patchComposer, pendingSettings, useComposerState } from "./composer-state";
+import { clearComposerResult, emptyComposerRuntime, patchComposer, pendingSettings, useComposerState } from "./composer-state";
 import { ComposerAttachments } from "./ComposerAttachments";
 import { PromptMenuBar } from "./prompt-menus/PromptMenuBar";
 import { useComposerFocus } from "./send-selection";
@@ -33,7 +33,6 @@ export interface ComposerSession {
   status?: AgentSessionStatus;
   display: ViewStatus;
   interrupt: () => void;
-  focusTerminal: () => void;
 }
 
 export function AgentComposer({ workspaceId, viewId, agentLabel, state, session, canLaunch, planning, onCollapse }: {
@@ -67,7 +66,6 @@ export function AgentComposer({ workspaceId, viewId, agentLabel, state, session,
   const pillTooltip = useGuardedTooltip(pillRef);
   const [historyId, setHistoryId] = useState<string>();
   const [error, setError] = useState("");
-  const [copiedRevision, setCopiedRevision] = useState<number>();
   const [dropping, setDropping] = useState(false);
   const status = session?.status;
   // Something was added to this draft from elsewhere (code from a file): continue typing after it.
@@ -137,7 +135,6 @@ export function AgentComposer({ workspaceId, viewId, agentLabel, state, session,
               : starting ? "The CLI is starting: send now and it goes as soon as it’s ready." : !status?.canSubmit ? status?.reason
                 : wantsPlan && status.activity !== "ready" ? "Plan mode switches once the CLI is ready."
                   : runtime.result?.message || status?.reason);
-  const needsHandoff = session && (!status?.canSubmit || runtime.result?.outcome === "uncertain" || runtime.result?.outcome === "not-sent");
 
   return <div className="composer-dock">
     {session && <div className="session-strip">
@@ -198,10 +195,8 @@ export function AgentComposer({ workspaceId, viewId, agentLabel, state, session,
         }}
         onKeyDown={(event) => { if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); send(); } }} />
       <div className="composer-feedback" aria-live="polite">{feedback}</div>
-      {needsHandoff && <div className="composer-handoff">
-        {status?.lifecycle === "failed" && <Button onPress={() => void services.commands.execute("agent.session.forget", target)}>Start new session</Button>}
-        <Button onPress={session.focusTerminal}>Focus terminal</Button>
-        <Button onPress={() => { void navigator.clipboard.writeText(composedPrompt(target).content).then(() => setCopiedRevision(state.composerRevision ?? 0)).catch(() => setError("Could not copy the prompt.")); }}>{copiedRevision === (state.composerRevision ?? 0) ? "Copied prompt" : "Copy composed prompt"}</Button>
+      {status?.lifecycle === "failed" && <div className="composer-handoff">
+        <Button onPress={() => void services.commands.execute("agent.session.forget", target)}>Start new session</Button>
       </div>}
       {pending !== undefined && !unused && !busy && <div className="composer-handoff">
         <Button onPress={() => { void services.commands.execute("agent.session.restart", target).catch((e: unknown) => setError(String(e))); }}>Restart with {restartLabel}</Button>
