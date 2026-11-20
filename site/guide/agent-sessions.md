@@ -13,8 +13,7 @@ The composer toolbar has:
 - **Model**, **Effort** and **Mode** pickers. Mode switches between **Code** and **Plan**. DimSum switches the CLI's own plan mode for you.
 - **Interrupt**: stops what the agent is doing.
 - **New conversation**: starts fresh in the same session.
-- **Focus terminal**: moves the keyboard to the CLI.
-- **Attach files** (+), **Recent prompts**, **Collapse composer**, and copying the fully composed prompt.
+- **Attach files** (+), **Recent prompts** and **Collapse composer**.
 
 Changing the model of a running session offers **Restart with…**, which restarts the CLI with the new model. The list of models is refreshed from each CLI about every 30 minutes.
 

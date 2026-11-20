@@ -92,7 +92,8 @@ export function SessionLauncher({ workspace, state, providers, selected, busy, n
     {error && <p role="alert" className="agent-error">{error}</p>}
     <div className="launcher-actions">
       <Button isDisabled={busy || !available} onPress={() => onStart(true)}>Resume previous…</Button>
-      <Button className="primary-button" isDisabled={busy || !available || needsModel} onPress={() => onStart(false)}>{busy ? "Starting…" : "Start session"}</Button>
+      {/* Shown only when a new conversation can start: the harness is installed and a model is chosen. */}
+      {available && !needsModel && <Button className="primary-button" isDisabled={busy} onPress={() => onStart(false)}>{busy ? "Starting…" : "Start session"}</Button>}
     </div>
   </section>;
 }
