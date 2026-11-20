@@ -303,7 +303,7 @@
 .prompt-switch[data-hovered] { background: var(--wb-bg-hover); }
 .prompt-switch[data-focus-visible] { box-shadow: inset 0 0 0 2px var(--wb-focus-ring); }
 .prompt-switch[data-selected] .switch-track { background: var(--wb-accent); box-shadow: none; }
-.prompt-switch[data-selected] .switch-thumb { transform: translateX(12px); }
+.prompt-switch[data-selected] .switch-thumb { background: var(--wb-accent-text); transform: translateX(12px); }
 .prompt-segmented-option, .prompt-checkbox-group, .prompt-text-option { flex-direction: column; align-items: stretch; }
 .prompt-segmented-option .segmented { display: flex; }
 .prompt-segmented-option .segment { flex: 1; }
@@ -396,7 +396,6 @@
 .base-trigger-chevron { display: grid; place-items: center; margin-left: auto; color: var(--wb-text-secondary); }
 .base-option-icon { display: grid; flex: none; place-items: center; color: var(--wb-text-secondary); }
 .base-tag { flex: none; padding: 0 var(--wb-space-1-5); border-radius: var(--wb-radius-xs); background: var(--wb-accent-soft); color: var(--wb-accent-on-soft); font-size: var(--wb-font-size-xs); font-weight: 600; line-height: 16px; }
-.wb-popover [role="option"][data-focused] .base-tag, .wb-popover [role="option"][data-hovered] .base-tag { background: var(--wb-on-accent-fill); color: inherit; }
 .base-popover { display: flex; width: 420px; max-width: 92vw; padding: 0; overflow: hidden; }
 .base-dialog { display: flex; flex: 1; flex-direction: column; min-width: 0; outline: none; }
 .base-search { display: flex; flex: none; align-items: center; gap: var(--wb-space-2); padding: 0 var(--wb-space-3); border-bottom: 1px solid var(--wb-border-subtle); color: var(--wb-text-secondary); }

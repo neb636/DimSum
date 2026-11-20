@@ -50,7 +50,7 @@
 .code-actions { display: inline-flex; flex: none; align-items: center; gap: var(--wb-space-1-5); margin-left: auto; }
 .code-tool { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border: 0; border-radius: var(--wb-radius-xs); background: var(--wb-code-control); color: var(--wb-code-fg); font: inherit; font-size: var(--wb-font-size-sm); font-weight: 500; outline: none; transition: background-color 100ms; }
 .code-tool[data-hovered] { background: var(--wb-code-control-hover); }
-.code-tool[data-selected] { background: var(--wb-accent); color: var(--wb-accent-text); }
+.code-tool[data-selected] { background: var(--wb-code-control-selected); color: var(--wb-code-fg); }
 .code-tool[data-disabled] { opacity: 0.4; }
 .code-tool[data-focus-visible] { box-shadow: 0 0 0 2px var(--wb-focus-ring); }
 .code-segmented { padding: 2px; border: 0; border-radius: var(--wb-radius-sm); background: var(--wb-code-control); box-shadow: none; }
@@ -58,7 +58,7 @@
 .code-segmented .segment[data-hovered] { color: var(--wb-code-fg); }
 .code-segmented .segment[data-selected] { background: var(--wb-code-control-selected); color: var(--wb-code-fg); box-shadow: none; }
 .code-badge.is-dirty { background: var(--wb-status-warning); color: var(--wb-code-bg); }
-.code-conflict { display: flex; flex-wrap: wrap; align-items: center; gap: var(--wb-space-2); padding: var(--wb-space-2) var(--wb-space-3); background: var(--wb-accent-soft); color: var(--wb-code-fg); font-size: var(--wb-font-size-sm); }
+.code-conflict { display: flex; flex-wrap: wrap; align-items: center; gap: var(--wb-space-2); padding: var(--wb-space-2) var(--wb-space-3); background: var(--wb-code-control); color: var(--wb-code-fg); font-size: var(--wb-font-size-sm); }
 .code-conflict span { flex: 1 1 220px; font-weight: 600; }
 .code-notice { color: var(--wb-code-fg); }
 .picture-view { display: flex; flex: 1; align-items: center; justify-content: center; min-height: 0; padding: var(--wb-space-4); overflow: auto;
@@ -78,8 +78,8 @@
   padding: 0 var(--wb-space-1) 0 10px;
   border: 0;
   border-radius: 999px;
-  background: var(--wb-accent);
-  color: var(--wb-accent-text);
+  background: var(--wb-code-fg);
+  color: var(--wb-code-bg);
   font: inherit;
   font-size: var(--wb-font-size-sm);
   font-weight: 600;
@@ -89,12 +89,12 @@
   cursor: default;
   animation: wb-pill-in 120ms ease-out;
 }
-.selection-pill[data-hovered], .selection-pill[data-pressed] { background: var(--wb-accent-hover); }
+.selection-pill[data-hovered], .selection-pill[data-pressed] { background: var(--wb-switch-thumb); }
 .selection-pill[data-focus-visible] { box-shadow: 0 0 0 3px var(--wb-focus-ring); }
 .selection-pill kbd {
   padding: 0 var(--wb-space-1-5);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--wb-accent-text) 20%, transparent);
+  background: color-mix(in srgb, var(--wb-code-bg) 12%, transparent);
   font: inherit;
   font-size: var(--wb-font-size-xs);
   font-weight: 500;
@@ -131,4 +131,3 @@
 .send-target-mark :where(.status-dot) { position: absolute; right: -2px; bottom: -2px; box-shadow: 0 0 0 2px var(--wb-bg-raised); }
 .send-target-mark .status-dot.tone-idle { background: var(--wb-bg-raised); }
 .send-target-mark.is-new { background: var(--wb-accent-soft); color: var(--wb-accent); }
-.wb-popover [role="menuitem"][data-focused] .send-target-mark, .wb-popover [role="menuitem"][data-hovered] .send-target-mark { background: var(--wb-on-accent-fill); color: inherit; }

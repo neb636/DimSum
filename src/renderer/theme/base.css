@@ -57,7 +57,7 @@ svg { flex: none; }
   height: var(--wb-control-md);
   padding: 0 var(--wb-space-3);
   border: 0;
-  border-radius: var(--wb-radius-sm);
+  border-radius: var(--wb-radius-pill);
   background: var(--wb-bg-raised);
   color: var(--wb-text-primary);
   font-size: var(--wb-font-size-md);
@@ -91,14 +91,17 @@ svg { flex: none; }
   border-radius: var(--wb-radius-xs);
   background: transparent;
   box-shadow: none;
-  color: var(--wb-accent);
+  color: var(--wb-text-primary);
   font-size: var(--wb-font-size-sm);
   font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--wb-border-strong);
+  text-underline-offset: 2px;
   white-space: nowrap;
   cursor: default;
   outline: none;
 }
-.link-button[data-hovered], .link-button:hover, .link-button[data-pressed] { background: var(--wb-accent-soft); }
+.link-button[data-hovered], .link-button:hover, .link-button[data-pressed] { background: var(--wb-bg-hover); }
 .link-button[data-focus-visible], .link-button:focus-visible { box-shadow: 0 0 0 3px var(--wb-focus-ring); }
 .link-button[data-disabled] { opacity: 0.45; }
 .wb-icon-button {
@@ -109,7 +112,7 @@ svg { flex: none; }
   height: var(--wb-control-md);
   padding: 0;
   border: 0;
-  border-radius: var(--wb-radius-sm);
+  border-radius: 50%;
   background: transparent;
   color: var(--wb-text-secondary);
   outline: none;
@@ -150,7 +153,7 @@ svg { flex: none; }
 /* React Aria parks a tooltip it has not positioned yet at the window's top-left corner. Never show it there. */
 .wb-tooltip:not([data-placement]) { visibility: hidden; }
 
-/* Popovers and menus: translucent material, hairline edge, accent-highlighted items, as macOS menus are. */
+/* Popovers and menus: translucent material, hairline edge, quietly highlighted items. */
 .wb-popover {
   min-width: 200px;
   max-width: min(440px, 92vw);
@@ -181,12 +184,8 @@ svg { flex: none; }
 .wb-popover [role="menuitem"] > div, .wb-popover [role="option"] > div { display: grid; gap: 1px; min-width: 0; padding: 2px 0; }
 .wb-popover [role="menuitem"] small, .wb-popover [role="option"] small { color: var(--wb-text-secondary); font-size: var(--wb-font-size-xs); line-height: 14px; }
 .wb-popover [role="menuitem"][data-focused], .wb-popover [role="menuitem"][data-hovered],
-.wb-popover [role="option"][data-focused], .wb-popover [role="option"][data-hovered] { background: var(--wb-accent); color: var(--wb-accent-text); }
-.wb-popover [role="menuitem"][data-focused] :is(small, svg, .context-menu-icon, .context-menu-shortcut),
-.wb-popover [role="menuitem"][data-hovered] :is(small, svg, .context-menu-icon, .context-menu-shortcut),
-.wb-popover [role="option"][data-focused] :is(small, svg, .base-option-icon, .base-option-check),
-.wb-popover [role="option"][data-hovered] :is(small, svg, .base-option-icon, .base-option-check) { color: inherit; opacity: 0.85; }
-.wb-popover [role="option"][data-focused] mark, .wb-popover [role="option"][data-hovered] mark { background: var(--wb-on-accent-fill); color: inherit; }
+.wb-popover [role="option"][data-focused], .wb-popover [role="option"][data-hovered] { background: var(--wb-bg-selected); }
+.wb-popover :is([role="menuitem"], [role="option"]):is([data-focused], [data-hovered]) > svg { color: var(--wb-text-primary); }
 /* With nothing selected, focus rests on the list itself. */
 .wb-popover [role="listbox"][data-focused] { background: none; }
 .wb-popover [data-selected] { font-weight: 600; }
@@ -398,7 +397,7 @@ svg { flex: none; }
 .segment[data-focus-visible] { box-shadow: 0 0 0 3px var(--wb-focus-ring); }
 .segment[data-selected][data-focus-visible] { box-shadow: var(--wb-shadow-thumb), 0 0 0 3px var(--wb-focus-ring); }
 
-/* Switches: the system's, in the accent color */
+/* Switches: the system's, in ink */
 .switch-track { position: relative; flex: none; width: 30px; height: 18px; border-radius: 9px; background: var(--wb-bg-selected); box-shadow: inset 0 0 0 0.5px var(--wb-border); transition: background-color 160ms; }
 .switch-thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--wb-switch-thumb); box-shadow: var(--wb-shadow-thumb); transition: transform 160ms cubic-bezier(0.3, 0.7, 0.4, 1); }
 
@@ -483,7 +482,7 @@ svg { flex: none; }
 .instruction-row.is-off .instruction-row-copy { opacity: .55; }
 .instruction-row-switch { display: inline-flex; outline: none; }
 .instruction-row-switch[data-selected] .switch-track { background: var(--wb-accent); box-shadow: none; }
-.instruction-row-switch[data-selected] .switch-thumb { transform: translateX(12px); }
+.instruction-row-switch[data-selected] .switch-thumb { background: var(--wb-accent-text); transform: translateX(12px); }
 .instruction-row-switch[data-focus-visible] .switch-track { box-shadow: 0 0 0 3px var(--wb-focus-ring); }
 .instruction-file-link { justify-self: start; font-size: var(--wb-font-size-sm); }
 .instruction-file-error { padding: var(--wb-space-1-5) var(--wb-space-2); border-radius: var(--wb-radius-sm); background: var(--wb-danger-soft); color: var(--wb-status-error); font-size: var(--wb-font-size-xs); line-height: 15px; }
