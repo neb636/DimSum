@@ -388,6 +388,10 @@ export interface WorktreeResult {
 export interface ExistingWorktree {
   path: string;
   branch?: string;
+  /** Unix ms the checkout was created, when it can be told. */
+  createdAt?: number;
+  /** What agent conversations there were called, newest first: says what the worktree was for when its branch doesn't. */
+  conversations?: string[];
 }
 
 /** An existing worktree with what it takes to decide whether it can go. */

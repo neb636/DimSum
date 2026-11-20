@@ -10,7 +10,8 @@ import { AgentIcon, BranchIcon, CloseIcon, MinusIcon, TerminalIcon } from "../..
 import { IconButton } from "../../ui/controls";
 import { CreateFromPicker, type BaseChoice } from "../agent/CreateFromPicker";
 import { useBaseBranches } from "../agent/use-base-branches";
-import { createWorktree, openWorktree, useWorktreeDialog, type WorktreeOpening } from "./worktrees";
+import { relativeTime } from "../source-control/source-control-store";
+import { byNewest, createWorktree, openWorktree, useWorktreeDialog, worktreeName, type WorktreeOpening } from "./worktrees";
 
 const OPENINGS: { id: string; label: string; icon: typeof AgentIcon; value: WorktreeOpening }[] = [
   { id: "agent", label: "Agent session", icon: AgentIcon, value: "agent" },
@@ -50,7 +51,7 @@ function WorktreeForm({ repository, close }: { repository: Workspace; close: () 
     void window.workbench.sourceControl.worktrees(repository.path).then((found) => { if (active) setExisting(found); }).catch(() => undefined);
     return () => { active = false; };
   }, [repository.path]);
-  const closed = existing.filter((entry) => !open.some((path) => samePath(path, entry.path)));
+  const closed = existing.filter((entry) => !open.some((path) => samePath(path, entry.path))).sort(byNewest);
   const name = branch.trim();
   const taken = Boolean(bases.data?.branches.some((item) => item.kind === "local" && item.name === name));
 
@@ -100,15 +101,20 @@ function WorktreeForm({ repository, close }: { repository: Workspace; close: () 
     {closed.length > 0 && <section className="worktree-existing" aria-labelledby="worktree-existing-title">
       <h3 id="worktree-existing-title">Existing worktrees</h3>
       <ul>
-        {closed.map((entry) => <li key={entry.path}>
-          <span className="base-option-icon"><BranchIcon size={13} /></span>
-          <span className="worktree-existing-copy">
-            <strong>{entry.branch ?? "Detached"}</strong>
-            <small title={entry.path}><bdi>{entry.path}</bdi></small>
-          </span>
-          <Button className="wb-button" isDisabled={busy} aria-label={`Open ${entry.branch ?? entry.path}`}
-            onPress={() => void run(() => openWorktree(repository.id, entry.path, entry.branch))}>Open</Button>
-        </li>)}
+        {closed.map((entry) => {
+          const title = entry.conversations?.[0];
+          return <li key={entry.path}>
+            <span className="base-option-icon"><BranchIcon size={13} /></span>
+            <span className="worktree-existing-copy">
+              <strong className={title ? "is-titled" : ""} title={entry.conversations?.join("\n")}>{title ?? entry.branch ?? "Detached"}</strong>
+              {title && <small className="worktree-branch">{entry.branch ?? "Detached"}</small>}
+              <small title={entry.path}><bdi>{entry.path}</bdi></small>
+            </span>
+            {entry.createdAt && <span className="worktree-existing-age" title={`Created ${new Date(entry.createdAt).toLocaleString()}`}>{relativeTime(entry.createdAt / 1000)}</span>}
+            <Button className="wb-button" isDisabled={busy} aria-label={`Open ${worktreeName(entry) ?? entry.path}`}
+              onPress={() => void run(() => openWorktree(repository.id, entry.path, worktreeName(entry)))}>Open</Button>
+          </li>;
+        })}
       </ul>
     </section>}
     <div className="dialog-actions">

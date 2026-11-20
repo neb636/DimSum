@@ -17,13 +17,13 @@ A workspace that is a Git repository lists its checkouts under it:
 
 Each checkout has its own tabs, so selecting Local or a worktree shows only what is open there. Terminals, the Files panel, Source control and new agent sessions all work in the checkout you are looking at, so you can open a terminal in a worktree to run a command without touching your local checkout.
 
-To make a worktree, select the **+** on the workspace's row (or **New Worktree…** in its menu). Name the branch, pick the branch to create it from, and choose what it opens with: an agent session, a terminal or nothing. The same dialog lists the repository's other worktrees that aren't in the sidebar, including ones made outside DimSum, so you can open them.
+To make a worktree, select the **+** on the workspace's row (or **New Worktree…** in its menu). Name the branch, pick the branch to create it from, and choose what it opens with: an agent session, a terminal or nothing. The same dialog lists the repository's other worktrees that aren't in the sidebar, including ones made outside DimSum, so you can open them. They're listed newest first. Each is named after the title Claude Code or Codex gave the latest agent conversation in it, with its branch beneath, so you can tell what each was for even when its branch name was generated. When you reopen one, the sidebar uses that name too. DimSum reads these titles from the CLIs' own files on your computer; this sends nothing and costs nothing.
 
 Right-click a worktree and choose **Close Worktree** to take it out of the sidebar. Its open views close, but its folder and branch stay on disk, and you can reopen it from the same dialog. Worktrees share the workspace's personas, your personal instructions and settings, and which instructions you turned off. Instructions shared in the repository come from the worktree's own branch.
 
 #### Cleaning up worktrees
 
-Worktrees add up, especially when every agent session gets one. Right-click a workspace and choose **Manage Worktrees…** (or select **Manage worktrees…** in the New worktree dialog) to see every worktree of the repository, least recently used first, with which ones are open in the sidebar, have uncommitted changes, or are locked.
+Worktrees add up, especially when every agent session gets one. Right-click a workspace and choose **Manage Worktrees…** (or select **Manage worktrees…** in the New worktree dialog) to see every worktree of the repository, named the same way, with which ones are open in the sidebar, have uncommitted changes, or are locked. Sort them by **Newest** (the default), **Oldest** or **Idle longest**. The time on each row shows when it was created, or, when sorted by Idle longest, when it was last used.
 
 - **Clean up idle worktrees** deletes, in one go, every worktree with no commits or file changes in the last week, 2 weeks or month. It leaves alone any that have uncommitted changes or are open in the sidebar; hover the button to see which ones it will delete.
 - Select worktrees with their checkboxes and choose **Delete** to delete several at once, or use the trash button on a row to delete one.

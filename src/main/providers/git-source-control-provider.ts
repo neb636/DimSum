@@ -388,7 +388,22 @@ export class GitSourceControlProvider implements SourceControlProvider {
 
   /** `git worktree list`, without this checkout, bare entries, or ones whose folder is gone. */
   async worktrees(root: string): Promise<ExistingWorktree[]> {
-    return (await this.otherCheckouts(root)).map(({ path: folder, branch }) => ({ path: folder, ...(branch ? { branch } : {}) }));
+    return Promise.all((await this.otherCheckouts(root)).map(async ({ path: folder, branch }) =>
+      ({ path: folder, ...(branch ? { branch } : {}), ...(await this.worktreeCreated(folder)) })));
+  }
+
+  /**
+   * When `git worktree add` made the checkout: the first entry of its HEAD reflog, which that writes. Else when its
+   * administrative folder was made.
+   */
+  private async worktreeCreated(worktree: string): Promise<{ createdAt?: number }> {
+    const gitDir = await this.git(worktree, ["rev-parse", "--absolute-git-dir"]).then((output) => output.trim(), () => undefined);
+    if (!gitDir) return {};
+    const reflog = await readFile(path.join(gitDir, "logs", "HEAD"), "utf8").catch(() => "");
+    const seconds = Number(reflog.split("\n", 1)[0].match(/> (\d+) [+-]\d{4}/)?.[1]);
+    if (seconds > 0) return { createdAt: seconds * 1000 };
+    const born = (await stat(gitDir).catch(() => undefined))?.birthtimeMs;
+    return born ? { createdAt: born } : {};
   }
 
   private async otherCheckouts(root: string): Promise<{ path: string; branch?: string; locked: boolean }[]> {
@@ -422,7 +437,7 @@ export class GitSourceControlProvider implements SourceControlProvider {
 
   async worktreeDetails(root: string): Promise<WorktreeDetails[]> {
     return Promise.all((await this.otherCheckouts(root)).map(async ({ path: folder, branch, locked }) =>
-      ({ path: folder, ...(branch ? { branch } : {}), locked, ...(await this.worktreeActivity(folder)) })));
+      ({ path: folder, ...(branch ? { branch } : {}), locked, ...(await this.worktreeActivity(folder)), ...(await this.worktreeCreated(folder)) })));
   }
 
   /**

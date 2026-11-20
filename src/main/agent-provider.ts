@@ -34,6 +34,12 @@ export interface AgentModelListing {
   parse: (stdout: string) => AgentModelChoice[];
 }
 
+/** What a CLI called one of its conversations, and when it last changed (Unix ms). */
+export interface ConversationTitle {
+  title: string;
+  at: number;
+}
+
 /** Executable, native UI and key protocol knowledge belongs to an adapter. */
 export interface AgentProviderAdapter {
   id: string;
@@ -54,6 +60,11 @@ export interface AgentProviderAdapter {
   listModels?: AgentModelListing;
   /** Model and effort as launch arguments; only called with a model the catalogue offers. */
   modelArgs?: (settings: AgentModelSettings) => string[];
+  /**
+   * Titles the CLI gave its conversations in `folder`, newest first, read from its own files. Sends nothing and spends
+   * nothing; best effort, so an empty list when it can't tell.
+   */
+  conversationTitles?: (folder: string) => Promise<ConversationTitle[]>;
   /** Run once without a terminal: prompt on stdin, answer as plain text on stdout. Used only by InternalAiService. */
   oneShot?: { args: () => string[]; quickTaskModel: AgentModelSettings };
   detect: (screen: ScreenObservation) => AgentDetection;

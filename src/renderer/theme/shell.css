@@ -337,6 +337,10 @@
 .worktree-existing-copy { display: grid; flex: 1; min-width: 0; gap: 1px; }
 .worktree-existing-copy strong { overflow: hidden; font-family: var(--wb-font-mono); font-size: var(--wb-font-size-sm); font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 .worktree-existing-copy small { overflow: hidden; color: var(--wb-text-secondary); font-size: var(--wb-font-size-xs); text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
+.worktree-existing-age { flex: none; color: var(--wb-text-secondary); font-size: var(--wb-font-size-xs); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* A conversation title is prose, not an identifier; the branch beneath it stays monospace. */
+.worktree-existing-copy strong.is-titled, .worktree-row-title strong.is-titled { font-family: inherit; }
+.worktree-existing-copy small.worktree-branch, .worktree-row-copy small.worktree-branch { font-family: var(--wb-font-mono); direction: ltr; }
 .worktree-manage-link { margin-right: auto; }
 
 /* Manage worktrees: a clean-up card for idle ones, then every worktree to delete one or several */
@@ -374,7 +378,8 @@
 .worktree-cleanup-copy p strong { color: var(--wb-text-primary); font-weight: 600; }
 .worktree-cleanup-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--wb-space-2); margin-top: var(--wb-space-1-5); }
 .worktree-cleanup-label { color: var(--wb-text-secondary); font-size: var(--wb-font-size-sm); }
-.worktree-age .segment { height: var(--wb-control-sm); padding: 0 var(--wb-space-2); }
+.worktree-age .segment, .worktree-sort .segment { height: var(--wb-control-sm); padding: 0 var(--wb-space-2); }
+.worktree-sort { margin-left: auto; }
 .worktree-cleanup-button { align-self: center; white-space: nowrap; }
 
 .worktree-list-section { display: flex; flex: 1; flex-direction: column; gap: var(--wb-space-1-5); min-height: 0; }

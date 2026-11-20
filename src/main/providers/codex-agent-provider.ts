@@ -1,5 +1,6 @@
 import { realpathSync } from "node:fs";
 import type { AgentModelListing, AgentProviderAdapter, AgentSubmission, ScreenObservation } from "../agent-provider";
+import { codexConversationTitles } from "./codex-conversations";
 import { codexPlanMode, detectCliScreen, pasteChunks } from "./cli-screen";
 import type { AgentModelChoice, AgentModelSettings, AgentPromptRequest, AgentResume } from "../../shared/models";
 
@@ -18,6 +19,7 @@ export class CodexAgentProvider implements AgentProviderAdapter {
   readonly label = "Codex";
   readonly executable = process.env.WORKBENCH_CODEX_PATH ?? "codex";
   readonly interrupt = "\u001b";
+  readonly conversationTitles = codexConversationTitles;
   // Model names change with Codex releases: this list only stands in until `listModels` has answered.
   readonly models: AgentModelChoice[] = ["gpt-6.1-sol", "gpt-6-astra", "gpt-6.1-terra", "gpt-6-sol", "gpt-6-luna"].map((id) => ({
     id, label: id, efforts: id === "gpt-6-luna" ? EFFORTS.slice(0, -1) : EFFORTS,

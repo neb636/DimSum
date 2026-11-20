@@ -1,5 +1,7 @@
 import { imagePreview } from "./image-previews";
 import { mergePersonalFiles } from "./worktree-adoption";
+import { withConversations } from "./worktree-conversations";
+import type { AgentProviderAdapter } from "./agent-provider";
 import { app, dialog, ipcMain, shell, Menu, type WebContents } from "electron";
 import { promises as fs } from "node:fs";
 import { FileOperations } from "./file-operations";
@@ -159,7 +161,7 @@ export function handle(channel: string, listener: (event: Electron.IpcMainInvoke
   });
 }
 
-export function registerIpc(ptyManager: PtyManager, agentSessionManager: AgentSessionManager, workspace: WorkspaceServices, attachments: PromptAttachments, resources: ResourceMonitor): void {
+export function registerIpc(ptyManager: PtyManager, agentSessionManager: AgentSessionManager, workspace: WorkspaceServices, attachments: PromptAttachments, resources: ResourceMonitor, agentProviders: readonly AgentProviderAdapter[]): void {
   resolveExecutionRoot = (root) => workspace.roots.resolve(root);
   handle(IPC.revokeExecutionTrust, () => revokeExecutionTrust());
   handle(IPC.storageMaintenance, async (_event, prune) => {
@@ -378,7 +380,7 @@ export function registerIpc(ptyManager: PtyManager, agentSessionManager: AgentSe
     return result;
   });
   handle(IPC.sourceControlWorktrees, async (_event, input: unknown) =>
-    workspace.sourceControl.worktrees(await allowedRoot(workspaceRootSchema.parse(input).root)));
+    withConversations(agentProviders, await workspace.sourceControl.worktrees(await allowedRoot(workspaceRootSchema.parse(input).root))));
   // Only a checkout the repository itself lists can be opened or removed through these.
   const listedWorktree = async (root: string, requested: string) => {
     const listed = await workspace.sourceControl.worktrees(root);
@@ -397,7 +399,7 @@ export function registerIpc(ptyManager: PtyManager, agentSessionManager: AgentSe
     return match.path;
   });
   handle(IPC.sourceControlWorktreeDetails, async (_event, input: unknown) =>
-    workspace.sourceControl.worktreeDetails(await allowedRoot(workspaceRootSchema.parse(input).root)));
+    withConversations(agentProviders, await workspace.sourceControl.worktreeDetails(await allowedRoot(workspaceRootSchema.parse(input).root))));
   handle(IPC.sourceControlRemoveWorktree, async (_event, input: unknown) => {
     const { root, path: requested, force } = removeWorktreeSchema.parse(input);
     const allowed = await allowedRoot(root);

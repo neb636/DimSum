@@ -4,6 +4,11 @@ import path from "node:path";
 
 const ATTEMPTS = 3;
 
+/** Claude Code's configuration folder: CLAUDE_CONFIG_DIR, else ~/.claude. */
+export function claudeConfigDir(): string {
+  return process.env.CLAUDE_CONFIG_DIR || path.join(homedir(), ".claude");
+}
+
 /** Claude Code's own state file, which holds per-folder trust: $CLAUDE_CONFIG_DIR/.claude.json, else ~/.claude.json. */
 function claudeStateFile(): string {
   const custom = process.env.CLAUDE_CONFIG_DIR;

@@ -11,7 +11,7 @@ import { IconButton } from "../../ui/controls";
 import { BranchIcon, CheckIcon, CloseIcon, LockIcon, MinusIcon, RefreshIcon, SparkIcon, TrashIcon } from "../../ui/icons";
 import { useWorkbenchStore } from "../../state/workbench-store";
 import { relativeTime } from "../source-control/source-control-store";
-import { removeWorktree, useWorktreeManager, workspaceAt } from "./worktrees";
+import { byNewest, removeWorktree, useWorktreeManager, workspaceAt } from "./worktrees";
 
 const DAY = 86_400_000;
 const AGES = [
@@ -20,8 +20,16 @@ const AGES = [
   { id: "30", label: "1 month", span: "month", days: 30 },
 ];
 
+const SORTS = [
+  { id: "newest", label: "Newest", compare: byNewest },
+  { id: "oldest", label: "Oldest", compare: (a: WorktreeDetails, b: WorktreeDetails) => byNewest(b, a) },
+  { id: "idle", label: "Idle longest", compare: (a: WorktreeDetails, b: WorktreeDetails) => a.lastActivityAt - b.lastActivityAt },
+];
+// Kept while the app runs, so reopening the dialog shows the order last chosen.
+let lastSortId = "newest";
+
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
-const nameOf = (worktree: WorktreeDetails) => worktree.branch ?? worktree.path.split(/[\\/]/).at(-1) ?? worktree.path;
+const nameOf = (worktree: WorktreeDetails) => worktree.conversations?.[0] ?? worktree.branch ?? worktree.path.split(/[\\/]/).at(-1) ?? worktree.path;
 const listNames = (names: string[]) => names.length <= 3 ? names.join(", ") : `${names.slice(0, 2).join(", ")} and ${names.length - 2} more`;
 
 /** Mounted once by the shell; opened with the `worktree.manage` command. */
@@ -46,6 +54,7 @@ function WorktreeManager({ repository, close }: { repository: Workspace; close: 
   const [load, setLoad] = useState<Load>({ status: "loading" });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [ageId, setAgeId] = useState("14");
+  const [sortId, setSortId] = useState(lastSortId);
   const [removing, setRemoving] = useState<Set<string>>(new Set());
   const [outcome, setOutcome] = useState<Outcome>();
   const [previewStale, setPreviewStale] = useState(false);
@@ -56,7 +65,7 @@ function WorktreeManager({ repository, close }: { repository: Workspace; close: 
     setLoad((current) => current.status === "ready" ? current : { status: "loading" });
     try {
       const worktrees = await window.workbench.sourceControl.worktreeDetails(repository.path);
-      setLoad({ status: "ready", worktrees: [...worktrees].sort((a, b) => a.lastActivityAt - b.lastActivityAt) });
+      setLoad({ status: "ready", worktrees });
       setSelected((current) => new Set([...current].filter((path) => worktrees.some((item) => item.path === path))));
     } catch (failure) {
       setLoad({ status: "error", error: errorMessage(failure) });
@@ -64,7 +73,8 @@ function WorktreeManager({ repository, close }: { repository: Workspace; close: 
   }, [repository.path]);
   useEffect(() => { void refresh(); }, [refresh]);
 
-  const worktrees = useMemo(() => load.status === "ready" ? load.worktrees : [], [load]);
+  const sort = SORTS.find((item) => item.id === sortId) ?? SORTS[0];
+  const worktrees = useMemo(() => load.status === "ready" ? [...load.worktrees].sort(sort.compare) : [], [load, sort]);
   const age = AGES.find((item) => item.id === ageId) ?? AGES[1];
   const openPaths = new Set(worktrees.filter((item) => workspaceAt(repository.id, item.path)).map((item) => item.path));
   const idle = worktrees.filter((item) => !item.locked && item.lastActivityAt < Date.now() - age.days * DAY);
@@ -160,7 +170,10 @@ function WorktreeManager({ repository, close }: { repository: Workspace; close: 
           <span className="checkbox-box">{someSelected ? <MinusIcon size={11} /> : <CheckIcon size={11} />}</span>
         </Checkbox>}
         <h3 id="worktree-list-title">{load.status === "ready" ? plural(worktrees.length, "worktree") : "Worktrees"}</h3>
-        {worktrees.length > 1 && <small>Least recently used first</small>}
+        {worktrees.length > 1 && <ToggleButtonGroup aria-label="Sort worktrees" className="segmented worktree-sort" selectionMode="single" disallowEmptySelection
+          selectedKeys={[sort.id]} onSelectionChange={(keys) => { const key = [...keys][0]; if (key !== undefined) { lastSortId = String(key); setSortId(lastSortId); } }}>
+          {SORTS.map((item) => <ToggleButton key={item.id} id={item.id} className="segment">{item.label}</ToggleButton>)}
+        </ToggleButtonGroup>}
       </header>
       {load.status === "loading" && <ul className="worktree-skeleton" aria-label="Loading worktrees">{[0, 1, 2].map((key) => <li key={key}><span /><span /></li>)}</ul>}
       {load.status === "error" && <p role="alert" className="agent-error worktree-list-error">Couldn’t list worktrees: {load.error}</p>}
@@ -176,22 +189,28 @@ function WorktreeManager({ repository, close }: { repository: Workspace; close: 
         {(item) => {
           const isOpen = openPaths.has(item.path);
           const isRemoving = removing.has(item.path);
+          const title = item.conversations?.[0];
+          const shownAt = sort.id === "idle" || !item.createdAt ? item.lastActivityAt : item.createdAt;
           return <GridListItem id={item.id} textValue={nameOf(item)}
             className={`worktree-row ${previewStale && staleKeys.has(item.path) ? "is-previewed" : ""} ${isRemoving ? "is-removing" : ""}`}>
             <Checkbox slot="selection" className="wb-checkbox"><span className="checkbox-box"><CheckIcon size={11} /></span></Checkbox>
             <span className="worktree-row-icon" aria-hidden="true">{item.locked ? <LockIcon size={14} /> : <BranchIcon size={14} />}</span>
             <span className="worktree-row-copy">
               <span className="worktree-row-title">
-                <strong className={item.branch ? "" : "is-detached"}>{nameOf(item)}</strong>
+                <strong className={`${title ? "is-titled" : ""} ${item.branch || title ? "" : "is-detached"}`} title={item.conversations?.join("\n")}>{nameOf(item)}</strong>
                 {!item.branch && <span className="worktree-chip">Detached</span>}
                 {isOpen && <span className="worktree-chip is-open">Open</span>}
                 {item.changes > 0 && <span className="worktree-chip is-dirty">{plural(item.changes, "change")}</span>}
                 {item.locked && <span className="worktree-chip">Locked</span>}
               </span>
+              {title && item.branch && <small className="worktree-branch">{item.branch}</small>}
               <small title={item.path}><bdi>{shortPath(item.path, repository.path)}</bdi></small>
             </span>
-            <span className="worktree-row-age" title={new Date(item.lastActivityAt).toLocaleString()}>
-              {isRemoving ? "Deleting…" : relativeTime(item.lastActivityAt / 1000)}
+            <span className="worktree-row-age" title={[
+              item.createdAt ? `Created ${new Date(item.createdAt).toLocaleString()}` : "",
+              `Last used ${new Date(item.lastActivityAt).toLocaleString()}`,
+            ].filter(Boolean).join("\n")}>
+              {isRemoving ? "Deleting…" : relativeTime(shownAt / 1000)}
             </span>
             <IconButton label={item.locked ? "Locked worktrees can’t be deleted" : `Delete ${nameOf(item)}`} className="worktree-row-delete"
               isDisabled={busy || item.locked} onPress={() => void remove([item])}><TrashIcon size={14} /></IconButton>
@@ -219,6 +238,7 @@ function WorktreeManager({ repository, close }: { repository: Workspace; close: 
 
 function describe(worktree: WorktreeDetails, open: boolean): string {
   return [
+    worktree.conversations?.length && worktree.branch ? worktree.branch : "",
     worktree.changes ? plural(worktree.changes, "uncommitted change") : "No uncommitted changes",
     `last used ${relativeTime(worktree.lastActivityAt / 1000)}`,
     open ? "open in the sidebar" : "",
