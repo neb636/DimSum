@@ -1,5 +1,5 @@
 import { execFile, spawn, type ChildProcess } from "node:child_process";
-import { access, cp, mkdir, mkdtemp, realpath, rm, stat } from "node:fs/promises";
+import { access, cp, mkdir, mkdtemp, readFile, realpath, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type {
@@ -399,7 +399,25 @@ export class GitSourceControlProvider implements SourceControlProvider {
       const resolved = await realpath(entry.path).catch(() => undefined);
       return resolved && resolved !== here ? entry : undefined;
     }));
-    return listed.filter((entry) => entry !== undefined);
+    const checkouts = listed.filter((entry) => entry !== undefined);
+    await this.repairLinks(root, checkouts.map((entry) => entry.path));
+    return checkouts;
+  }
+
+  /**
+   * A linked checkout finds its repository through the `gitdir:` line of its `.git` file. When the repository's folder
+   * is moved or renamed, that line still names the old place and every git command run in the checkout fails, though
+   * the repository still lists it. `git worktree repair` points such checkouts at where the repository is now.
+   */
+  private async repairLinks(root: string, worktrees: string[]): Promise<void> {
+    const broken = (await Promise.all(worktrees.map(async (worktree) => {
+      const link = await readFile(path.join(worktree, ".git"), "utf8").catch(() => undefined);
+      const gitDir = link?.match(/^gitdir: (.+)$/m)?.[1]?.trim();
+      if (!gitDir) return undefined;
+      const exists = await access(path.resolve(worktree, gitDir)).then(() => true, () => false);
+      return exists ? undefined : worktree;
+    }))).filter((worktree) => worktree !== undefined);
+    if (broken.length) await this.git(root, ["worktree", "repair", "--", ...broken]).catch(() => undefined);
   }
 
   async worktreeDetails(root: string): Promise<WorktreeDetails[]> {
