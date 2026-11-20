@@ -8,6 +8,10 @@ updates:
     groups:
       tooling:
         dependency-type: development
+    ignore:
+      # typescript-eslint's peer range stops below TypeScript 6.1. Drop this once it accepts newer versions.
+      - dependency-name: typescript
+        versions: [">=6.1.0"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
