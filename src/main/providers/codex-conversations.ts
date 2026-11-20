@@ -12,7 +12,7 @@ function codexHome(): string {
   return process.env.CODEX_HOME || path.join(homedir(), ".codex");
 }
 
-/** Which folder each rollout ran in. Rollouts don't change folder, so each file is read once. */
+/** Which folder each rollout ran in. Rollouts don't change folder, so each file's first line is read once. */
 const rollouts = new Map<string, { cwd?: string; id?: string; at: number }>();
 
 async function firstLine(file: string): Promise<string> {
@@ -33,19 +33,22 @@ async function rolloutFiles(): Promise<string[]> {
 
 let indexing: Promise<void> | undefined;
 
-/** Reads the rollouts new since last time; folders asked about together share one pass. */
+/** Reads the rollouts new since last time, and when each was last written; folders asked about together share one pass. */
 function indexRollouts(): Promise<void> {
-  indexing ??= readNewRollouts().finally(() => { indexing = undefined; });
+  indexing ??= readRollouts().finally(() => { indexing = undefined; });
   return indexing;
 }
 
-async function readNewRollouts(): Promise<void> {
-  const files = (await rolloutFiles()).filter((file) => !rollouts.has(file));
+async function readRollouts(): Promise<void> {
+  const files = await rolloutFiles();
   // In batches, so years of rollouts don't open thousands of files at once.
   for (let start = 0; start < files.length; start += READ_BATCH) await Promise.all(files.slice(start, start + READ_BATCH).map(async (file) => {
     try {
-      const [line, info] = await Promise.all([firstLine(file), stat(file)]);
-      const meta = JSON.parse(line) as { type?: string; payload?: { cwd?: unknown; id?: unknown } };
+      const info = await stat(file);
+      const known = rollouts.get(file);
+      // A resumed conversation is written to again: its time moves, its folder and id don't.
+      if (known) { known.at = info.mtimeMs; return; }
+      const meta = JSON.parse(await firstLine(file)) as { type?: string; payload?: { cwd?: unknown; id?: unknown } };
       const payload = meta.type === "session_meta" ? meta.payload : undefined;
       rollouts.set(file, {
         at: info.mtimeMs,
