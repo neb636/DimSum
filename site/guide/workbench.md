@@ -30,6 +30,8 @@ Worktrees add up, especially when every agent session gets one. Right-click a wo
 
 Deleting a worktree removes its folder from disk, after you confirm, and cannot be undone; its branch is kept. A worktree with uncommitted changes can still be deleted, and the confirmation says those changes will be lost. One open in the sidebar is closed first, stopping its sessions and terminals. Locked worktrees can't be deleted here.
 
+If you move or rename the repository's folder, its existing worktrees lose track of it. DimSum notices this when it lists them and reconnects them to the repository where it is now (`git worktree repair`), so they still show up and can be opened and deleted.
+
 Files you open on their own, from Finder or with <kbd>⌘</kbd><kbd>O</kbd>, are collected under a separate entry that only holds files. The **Settings** button is at the bottom of the sidebar.
 
 ## Views and tabs
