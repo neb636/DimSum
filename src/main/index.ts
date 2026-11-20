@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, MenuItem, shell, type WebContents } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, MenuItem, nativeTheme, shell, type WebContents } from "electron";
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { AgentModelCatalogue } from "./agent-model-catalogue";
@@ -136,7 +136,8 @@ function createWindow(): BrowserWindow {
     height: 920,
     minWidth: 960,
     minHeight: 640,
-    backgroundColor: "#f8f7f7",
+    // The window canvas (--wb-bg-app) in the system appearance, so the first frame matches the page.
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "#161618" : "#ececee",
     titleBarStyle: "hiddenInset",
     trafficLightPosition: { x: 22, y: 22 },
     show: !qaHidden,

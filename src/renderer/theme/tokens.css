@@ -1,53 +1,98 @@
 /*
- * Hybrid theme: light chrome (sidebars, tabs, composer) around dark code surfaces
- * (terminals, file viewer). Feature styles consume only these tokens.
+ * DimSum's design system, in the manner of a native macOS app: bento cards on a quiet canvas, the system font,
+ * the system accent, hairline edges and soft depth. The chrome follows the system's light or dark appearance; code
+ * surfaces (terminals, file viewer) stay dark in both. Feature styles consume only these tokens.
+ *
+ * Scales, used everywhere so every screen lines up:
+ *   space    4 · 6 · 8 · 12 · 16 · 20 · 24       (--wb-space-*)
+ *   type     11 · 12 · 13 · 15 · 22               (--wb-font-size-*)
+ *   radius   5 · 7 · 9 · 12 · 14 · 18             (--wb-radius-*)
+ *   controls 22 small · 28 regular · 32 large    (--wb-control-*)
  */
 :root {
   color-scheme: light;
 
-  /* Chrome surfaces */
-  --wb-bg-app: #f8f7f7;
-  --wb-bg-panel: #fcfcfc;
+  /* Spacing */
+  --wb-space-1: 4px;
+  --wb-space-1-5: 6px;
+  --wb-space-2: 8px;
+  --wb-space-3: 12px;
+  --wb-space-4: 16px;
+  --wb-space-5: 20px;
+  --wb-space-6: 24px;
+
+  /* Type */
+  --wb-font-size-xs: 11px;
+  --wb-font-size-sm: 12px;
+  --wb-font-size-md: 13px;
+  --wb-font-size-lg: 15px;
+  --wb-font-size-xl: 22px;
+  --wb-font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif;
+  --wb-font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", system-ui, sans-serif;
+  --wb-font-mono: "SFMono-Regular", ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  /* Shape */
+  --wb-radius-xs: 5px;
+  --wb-radius-sm: 7px;
+  --wb-radius-md: 9px;
+  --wb-radius-lg: 12px;
+  --wb-radius-xl: 14px;
+  --wb-radius-2xl: 18px;
+  --wb-radius-3xl: 18px;
+
+  /* Controls and rows */
+  --wb-control-sm: 22px;
+  --wb-control-md: 28px;
+  --wb-control-lg: 32px;
+  --wb-row-height: 28px;
+  --wb-header-height: 44px;
+
+  /* Canvas and cards */
+  --wb-bg-app: #ececee;
+  --wb-bg-panel: #ffffff;
   --wb-bg-raised: #ffffff;
-  --wb-bg-field: #f1f1f1;
-  --wb-bg-hover: #f1f1f1;
-  --wb-bg-selected: #ececec;
-  --wb-border: #e2e2e2;
-  --wb-border-subtle: #ececec;
+  --wb-bg-field: #f3f3f5;
+  --wb-bg-hover: #0000000a;
+  --wb-bg-selected: #00000012;
+  --wb-bg-popover: #fffffff0;
+  --wb-border: #00000017;
+  --wb-border-subtle: #0000000f;
+  --wb-border-strong: #00000026;
   --wb-highlight: #ffffff;
 
   /* Text */
-  --wb-text-primary: #121212;
-  --wb-text-secondary: #7b7b7b;
-  --wb-text-muted: #a8a8a8;
-  --wb-text-inverse: #fcfcfc;
+  --wb-text-primary: #1d1d1f;
+  --wb-text-secondary: #6e6e73;
+  --wb-text-muted: #a1a1a6;
+  --wb-text-inverse: #ffffff;
 
-  /* Accent and emphasis */
-  --wb-accent: #3582ff;
-  --wb-accent-hover: #0d7dfd;
-  --wb-accent-soft: #3582ff1a;
+  /* Accent: the system blue */
+  --wb-accent: #0a7aff;
+  --wb-accent-hover: #0068e0;
+  --wb-accent-soft: #0a7aff1a;
   --wb-accent-text: #ffffff;
-  --wb-strong-start: #323232;
-  --wb-strong-end: #222222;
-  --wb-strong-ring: #333333;
-  --wb-focus-ring: #3582ff66;
+  --wb-accent-on-soft: #0062d1;
+  --wb-strong-start: #0a7aff;
+  --wb-strong-end: #0a7aff;
+  --wb-strong-ring: #0a7aff;
+  --wb-focus-ring: #0a7aff59;
 
   /* Status */
-  --wb-status-ready: #55b93e;
-  --wb-status-working: #3582ff;
-  --wb-status-warning: #e36323;
-  --wb-status-error: #fe5938;
-  --wb-status-idle: #a8a8a8;
+  --wb-status-ready: #28a745;
+  --wb-status-working: #0a7aff;
+  --wb-status-warning: #e8820c;
+  --wb-status-error: #e5372b;
+  --wb-status-idle: #c7c7cc;
 
   /* Destructive actions */
-  --wb-danger: #ef4b2b;
-  --wb-danger-hover: #dc3d1e;
+  --wb-danger: #e5372b;
+  --wb-danger-hover: #cc2c21;
   --wb-danger-text: #ffffff;
-  --wb-danger-ring: #ef4b2b52;
-  --wb-danger-soft: #fff4f1;
-  --wb-danger-soft-edge: #f9d6cd;
-  --wb-danger-strong-text: #3a1a12;
-  --wb-shadow-danger: inset 0 1px 0 #ffffff33, 0 1px 2px #b4321a40, 0 0 0 1px #d8401f;
+  --wb-danger-ring: #e5372b4d;
+  --wb-danger-soft: #e5372b12;
+  --wb-danger-soft-edge: #e5372b33;
+  --wb-danger-strong-text: #a3241b;
+  --wb-shadow-danger: 0 1px 1px #00000014, inset 0 0.5px 0 #ffffff40;
 
   /* Harness marks: each vendor's own colors, the same on every surface */
   --wb-mark-claude: #d97757;
@@ -57,16 +102,28 @@
   --wb-mark-codex-end: #3941ff;
 
   /* Overlays and depth */
-  --wb-overlay: #1212122e;
-  --wb-tooltip-bg: #121212;
-  --wb-tooltip-text: #fcfcfc;
-  --wb-shadow-card: 0 1px 2px #00000008, 0 8px 16px -12px #0000001f;
-  --wb-shadow-toolbar: 0 1px 4px -4px #00000013, 0 8px 16px -12px #00000020;
-  --wb-shadow-prompt: inset 0 2px 0 0 #ffffff, 0 18px 24px -20px #00000020, 0 8px 16px -12px #00000013;
-  --wb-shadow-popover: 0 38px 38px #0000000f, 0 10px 21px #00000014, 0 0 0 1px #0000000a;
-  --wb-shadow-thumb: 0 1.25px 3px #3232321a, inset 0 1.25px 1px #ffffff;
-  --wb-shadow-inset: inset 0 1px 2px #3232321a;
-  --wb-shadow-strong: inset 0 0.5px 1px #ffffff26, 0 2px 4px -1px #0d0d0d80, 0 0 0 1px var(--wb-strong-ring);
+  --wb-overlay: #0000002e;
+  --wb-tooltip-bg: #fbfbfdf5;
+  --wb-tooltip-text: #1d1d1f;
+  --wb-shadow-card: 0 0 0 0.5px #0000000d, 0 1px 2px #0000000a, 0 2px 8px -4px #0000000f;
+  --wb-shadow-toolbar: 0 0.5px 1px #0000001f, 0 1px 1.5px #0000000a;
+  --wb-shadow-prompt: 0 0 0 0.5px #0000000d, 0 1px 2px #0000000a, 0 6px 16px -10px #0000001f;
+  --wb-shadow-popover: 0 0 0 0.5px #00000026, 0 10px 32px -6px #00000033, 0 2px 6px #00000014;
+  --wb-shadow-modal: 0 0 0 0.5px #00000026, 0 24px 64px -12px #00000047, 0 4px 12px #0000001a;
+  --wb-shadow-thumb: 0 0 0 0.5px #0000000f, 0 1px 2px #00000026, 0 1px 3px #0000000f;
+  --wb-shadow-inset: inset 0 0 0 0.5px #0000000a;
+  --wb-shadow-strong: 0 1px 1px #00000014, inset 0 0.5px 0 #ffffff40;
+  --wb-popover-blur: blur(24px) saturate(180%);
+
+  /* Controls drawn on an accent fill or on a dark code surface */
+  --wb-on-accent-fill: #ffffff33;
+  --wb-code-control: #ffffff12;
+  --wb-code-control-hover: #ffffff1f;
+  --wb-code-control-selected: #ffffff26;
+  --wb-code-edge: 0 0 0 0.5px #00000040;
+  --wb-shadow-pill: 0 4px 12px -2px #00000066;
+  --wb-shadow-brand: 0 4px 10px #0000001f;
+  --wb-switch-thumb: #ffffff;
 
   /* Image preview: always dark, so a picture reads the same whatever surrounds it */
   --wb-lightbox-scrim: #0b0d11e6;
@@ -75,47 +132,95 @@
   --wb-lightbox-edge: #ffffff1f;
   --wb-shadow-lightbox: 0 32px 80px -16px #000000b3;
 
-  /* Shape and type */
-  --wb-radius-xs: 6px;
-  --wb-radius-sm: 8px;
-  --wb-radius-md: 10px;
-  --wb-radius-lg: 12px;
-  --wb-radius-xl: 16px;
-  --wb-radius-2xl: 20px;
-  --wb-radius-3xl: 24px;
-  --wb-font-ui: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --wb-font-mono: "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
-
   /* Dark code surfaces */
-  --wb-code-bg: #16181d;
-  --wb-code-chrome: #1c1f25;
-  --wb-code-border: #262a31;
-  --wb-code-fg: #d7dce5;
-  --wb-code-muted: #8b93a1;
-  --wb-code-gutter: #4f5663;
-  --wb-code-cursor: #8ca8ff;
-  --wb-code-selection: #3e4a6b99;
+  --wb-code-bg: #1c1c1f;
+  --wb-code-chrome: #222226;
+  --wb-code-border: #2e2e33;
+  --wb-code-fg: #e3e3e8;
+  --wb-code-muted: #8e8e96;
+  --wb-code-gutter: #55555d;
+  --wb-code-cursor: #6aa7ff;
+  --wb-code-selection: #3d5a8a8c;
   --wb-code-active-line: #ffffff08;
-  --wb-code-keyword: #c678dd;
-  --wb-code-string: #98c379;
-  --wb-code-comment: #6b7280;
-  --wb-code-number: #d19a66;
-  --wb-code-type: #e5c07b;
-  --wb-code-function: #61afef;
-  --wb-code-property: #e06c75;
-  --wb-code-meta: #56b6c2;
+  --wb-code-keyword: #ff7ab2;
+  --wb-code-string: #ff8170;
+  --wb-code-comment: #7f8c98;
+  --wb-code-number: #d9c97c;
+  --wb-code-type: #dabaff;
+  --wb-code-function: #67b7a4;
+  --wb-code-property: #4eb0cc;
+  --wb-code-meta: #ffa14f;
 
   /* Terminal palette (read by xterm, so values stay literal) */
-  --wb-terminal-bg: #16181d;
-  --wb-terminal-fg: #d7dce5;
-  --wb-terminal-cursor: #8ca8ff;
-  --wb-terminal-selection: #3e4a6b99;
-  --wb-terminal-black: #20242c;
-  --wb-terminal-red: #e06c75;
-  --wb-terminal-green: #98c379;
-  --wb-terminal-yellow: #e5c07b;
-  --wb-terminal-blue: #61afef;
-  --wb-terminal-magenta: #c678dd;
-  --wb-terminal-cyan: #56b6c2;
-  --wb-terminal-white: #abb2bf;
+  --wb-terminal-bg: #1c1c1f;
+  --wb-terminal-fg: #e3e3e8;
+  --wb-terminal-cursor: #6aa7ff;
+  --wb-terminal-selection: #3d5a8a8c;
+  --wb-terminal-black: #2a2a2f;
+  --wb-terminal-red: #ff6b6b;
+  --wb-terminal-green: #63d47f;
+  --wb-terminal-yellow: #f2c96b;
+  --wb-terminal-blue: #6aa7ff;
+  --wb-terminal-magenta: #d491ff;
+  --wb-terminal-cyan: #5ccfe6;
+  --wb-terminal-white: #c7c7cc;
+}
+
+/* Dark appearance: follows the system, as a native app does. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --wb-bg-app: #161618;
+    --wb-bg-panel: #1f1f22;
+    --wb-bg-raised: #2a2a2e;
+    --wb-bg-field: #ffffff0d;
+    --wb-bg-hover: #ffffff0d;
+    --wb-bg-selected: #ffffff17;
+    --wb-bg-popover: #2c2c30f2;
+    --wb-border: #ffffff1a;
+    --wb-border-subtle: #ffffff10;
+    --wb-border-strong: #ffffff2b;
+    --wb-highlight: #ffffff14;
+
+    --wb-text-primary: #f5f5f7;
+    --wb-text-secondary: #a1a1a8;
+    --wb-text-muted: #6e6e75;
+    --wb-text-inverse: #ffffff;
+
+    --wb-accent: #0a84ff;
+    --wb-accent-hover: #3396ff;
+    --wb-accent-soft: #0a84ff29;
+    --wb-accent-on-soft: #5eacff;
+    --wb-strong-start: #0a84ff;
+    --wb-strong-end: #0a84ff;
+    --wb-strong-ring: #0a84ff;
+    --wb-focus-ring: #0a84ff73;
+
+    --wb-status-ready: #32d74b;
+    --wb-status-working: #0a84ff;
+    --wb-status-warning: #ff9f0a;
+    --wb-status-error: #ff453a;
+    --wb-status-idle: #58585e;
+
+    --wb-danger: #ff453a;
+    --wb-danger-hover: #ff5c52;
+    --wb-danger-ring: #ff453a59;
+    --wb-danger-soft: #ff453a1a;
+    --wb-danger-soft-edge: #ff453a40;
+    --wb-danger-strong-text: #ff8a80;
+
+    --wb-overlay: #00000066;
+    --wb-tooltip-bg: #3a3a3ef2;
+    --wb-tooltip-text: #f5f5f7;
+    --wb-shadow-card: 0 0 0 0.5px #ffffff12, 0 1px 2px #00000040;
+    --wb-shadow-toolbar: 0 0 0 0.5px #ffffff14, 0 1px 1.5px #00000040;
+    --wb-shadow-prompt: 0 0 0 0.5px #ffffff12, 0 6px 16px -10px #00000080;
+    --wb-shadow-popover: 0 0 0 0.5px #ffffff1f, 0 10px 32px -6px #00000099, 0 2px 6px #00000059;
+    --wb-shadow-modal: 0 0 0 0.5px #ffffff1f, 0 24px 64px -12px #000000b3, 0 4px 12px #00000066;
+    --wb-shadow-thumb: 0 0 0 0.5px #ffffff1a, 0 1px 2px #00000066;
+    --wb-shadow-inset: inset 0 0 0 0.5px #ffffff0d;
+
+    /* Code surfaces keep their colors: a terminal reads its palette once, when it opens. */
+  }
 }
