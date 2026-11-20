@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, realpath, utimes, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, realpath, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { _electron as electron } from "playwright";
@@ -13,7 +13,9 @@ import { assertQaWindowVisibility, qaEnvironment } from "./qa-environment.mjs";
 // - the clean-up offers only worktrees idle past the chosen age, leaving out ones with uncommitted changes, open in the
 //   sidebar, or locked, and deleting them keeps their branches;
 // - several selected worktrees delete at once, uncommitted changes included after a warning;
-// - one deleted from its row that is open in the sidebar closes there first.
+// - one deleted from its row that is open in the sidebar closes there first;
+// - worktrees are named after their agent conversations' titles (Claude Code and Codex files in temporary homes), newest
+//   first, and the manager sorts by newest, oldest or idle longest.
 const directory = await realpath(await mkdtemp(join(tmpdir(), "workbench-worktree-cleanup-qa-")));
 const repo = join(directory, "repo");
 const container = `${repo}-worktrees`;
@@ -32,13 +34,28 @@ const add = async (name, age) => {
   git("worktree", "add", "--quiet", "-b", `wb/${name}`, join(container, name));
   if (!age) return;
   const admin = join(repo, ".git", "worktrees", name);
+  // Created then, too: the first reflog entry's time is when the worktree was made.
+  const reflog = join(admin, "logs", "HEAD");
+  await writeFile(reflog, (await readFile(reflog, "utf8")).replace(/> \d+ /, `> ${Math.floor(age.getTime() / 1000)} `));
   for (const file of ["HEAD", join("logs", "HEAD")]) await utimes(join(admin, file), age, age);
 };
 await add("idle", month);
-await add("idle-dirty", month);
+await add("idle-dirty", new Date(month.getTime() + 3_600_000));
 await add("idle-open", month);
 await add("idle-locked", month);
 await add("fresh");
+// What the agents called their conversations there, in temporary Claude Code and Codex homes.
+const claudeHome = join(directory, "claude-home");
+const codexHome = join(directory, "codex-home");
+const claudeProject = join(claudeHome, "projects", join(container, "fresh").replace(/[^a-zA-Z0-9]/g, "-"));
+await mkdir(claudeProject, { recursive: true });
+await writeFile(join(claudeProject, "c0ffee.jsonl"), `${JSON.stringify({ type: "user", message: { content: "hi" } })}\n${JSON.stringify({ type: "ai-title", aiTitle: "Fix the flaky login test", sessionId: "c0ffee" })}\n`);
+await mkdir(join(codexHome, "sessions", "2026", "01", "01"), { recursive: true });
+await writeFile(join(codexHome, "sessions", "2026", "01", "01", "rollout-2026-01-01T00-00-00-abc.jsonl"),
+  `${JSON.stringify({ type: "session_meta", payload: { id: "abc", cwd: join(container, "idle-dirty") } })}\n`);
+await writeFile(join(codexHome, "session_index.jsonl"), `${JSON.stringify({ id: "abc", thread_name: "Tidy the README" })}\n`);
+const FRESH = "Fix the flaky login test";
+const DIRTY = "Tidy the README";
 const scratch = join(container, "idle-dirty", "notes.txt");
 await writeFile(scratch, "work in progress\n");
 await utimes(scratch, month, month);
@@ -54,7 +71,7 @@ await writeFile(join(directory, "workbench-state.json"), JSON.stringify({
 }));
 await writeFile(join(directory, "execution-trust.json"), JSON.stringify([repo]));
 
-const app = await electron.launch({ args: ["."], env: qaEnvironment({ WORKBENCH_USER_DATA_DIR: directory }) });
+const app = await electron.launch({ args: ["."], env: qaEnvironment({ WORKBENCH_USER_DATA_DIR: directory, CLAUDE_CONFIG_DIR: claudeHome, CODEX_HOME: codexHome }) });
 const errors = [];
 try {
   const page = await app.firstWindow();
@@ -76,16 +93,33 @@ try {
 
   // The + shows once the folder is known to support worktrees, as does the menu item.
   await row("repo").getByRole("button", { name: "New worktree" }).waitFor();
+
+  // The New worktree dialog lists the closed ones newest first, by conversation title with the branch beneath.
+  await row("repo").getByRole("button", { name: "New worktree" }).click();
+  const existing = page.getByRole("dialog", { name: /New worktree/ }).locator(".worktree-existing li");
+  await existing.first().getByText(FRESH).waitFor();
+  assert.equal(await existing.count(), 4);
+  assert.match(await existing.first().innerText(), /wb\/fresh/);
+  assert.match(await existing.nth(1).innerText(), new RegExp(DIRTY));
+  assert.match(await existing.nth(2).innerText(), /wb\/idle/);
+  await shot("0-new-dialog");
+  await page.keyboard.press("Escape");
+
   await row("repo").click({ button: "right" });
   await page.getByRole("menuitem", { name: "Manage Worktrees…" }).click();
-  await item("wb/fresh").waitFor();
+  await item(FRESH).waitFor();
   assert.equal(await list.getByRole("row").count(), 5);
-  // Least recently used first; the fresh one is last.
-  assert.match(await list.getByRole("row").last().innerText(), /wb\/fresh/);
+  // Newest first by default, then oldest first, then least recently used first.
+  assert.match(await list.getByRole("row").first().innerText(), new RegExp(FRESH));
+  assert.match(await list.getByRole("row").nth(1).innerText(), new RegExp(DIRTY));
+  await manager.getByRole("radio", { name: "Oldest" }).or(manager.getByRole("button", { name: "Oldest" })).click();
+  assert.match(await list.getByRole("row").last().innerText(), new RegExp(FRESH));
+  await manager.getByRole("radio", { name: "Idle longest" }).or(manager.getByRole("button", { name: "Idle longest" })).click();
+  assert.match(await list.getByRole("row").last().innerText(), new RegExp(FRESH));
   await manager.getByText("1 worktree has had no commits or file changes in the last 2 weeks.").waitFor();
   await manager.getByText("2 more are left alone", { exact: false }).waitFor();
   assert(await item("wb/idle-open").getByText("Open", { exact: true }).isVisible());
-  assert(await item("wb/idle-dirty").getByText("1 change").isVisible());
+  assert(await item(DIRTY).getByText("1 change").isVisible());
   assert(await item("wb/idle-locked").getByText("Locked", { exact: true }).isVisible());
   await shot("1-manager");
 
@@ -107,8 +141,8 @@ try {
   await manager.getByText("2 idle worktrees have uncommitted changes", { exact: false }).waitFor();
 
   // Several at once, uncommitted changes included.
-  await item("wb/idle-dirty").locator(".checkbox-box").click();
-  await item("wb/fresh").locator(".checkbox-box").click();
+  await item(DIRTY).locator(".checkbox-box").click();
+  await item(FRESH).locator(".checkbox-box").click();
   await manager.getByText("2 selected").waitFor();
   await shot("4-selected");
   await manager.getByRole("button", { name: "Delete 2", exact: true }).click();

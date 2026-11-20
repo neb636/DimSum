@@ -1,13 +1,12 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { homedir, userInfo } from "node:os";
+import { userInfo } from "node:os";
 import { join } from "node:path";
 
-/** Claude Code's configuration folder: CLAUDE_CONFIG_DIR, else ~/.claude. */
-export function claudeConfigDir(): string {
-  return process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude");
-}
+import { claudeConfigDir } from "../../providers/claude-config";
+
+export { claudeConfigDir };
 
 /** Claude Code names its Keychain item after the config folder when one is chosen. */
 function keychainService(): string {

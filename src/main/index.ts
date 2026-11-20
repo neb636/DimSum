@@ -187,7 +187,7 @@ app.whenReady().then(async () => {
   await loadExecutionTrust();
   configureSecurity();
   if (process.env.WORKBENCH_QA_HIDDEN === "1") app.dock?.hide();
-  registerIpc(ptyManager, agentSessionManager, workspaceServices, attachments, resources);
+  registerIpc(ptyManager, agentSessionManager, workspaceServices, attachments, resources, agentProviders);
   registerAiUsage(aiUsage);
   registerDimsum(roots);
   // The page says when it listens for files to open; anything that arrived before then is delivered at that point.

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { create } from "zustand";
 import type { ExtensionContext } from "@dimsum/sdk";
-import type { Workspace } from "../../../shared/models";
+import type { ExistingWorktree, Workspace } from "../../../shared/models";
 import { isFilesWorkspace } from "../../../shared/files-workspace";
 import { repositoryOf } from "../../../shared/workspace-tree";
 import { services } from "../../core/services";
@@ -94,7 +94,7 @@ const samePath = (a: string, b: string) => a.replace(/[\\/]+$/, "") === b.replac
  * Lists one of the repository's existing checkouts (from `sourceControl.worktrees`) under it. One already open as a
  * workspace of its own becomes this worktree, keeping its tabs.
  */
-export async function openWorktree(workspaceId: string, path: string, branch?: string): Promise<string> {
+export async function openWorktree(workspaceId: string, path: string, name?: string): Promise<string> {
   const repository = repositoryFor(workspaceId);
   const standalone = useWorkbenchStore.getState().workspaces.find((item) => !isFilesWorkspace(item) && !item.parentId && item.id !== repository.id && samePath(item.path, path));
   const granted = await window.workbench.sourceControl.openWorktree(repository.path, path, Boolean(standalone));
@@ -104,9 +104,19 @@ export async function openWorktree(workspaceId: string, path: string, branch?: s
     // Its personal layer is the repository's from now on; what was read before came from its own folder.
     reloadConfig(standalone.path);
   }
-  const id = standalone?.id ?? store.addWorkspace(granted, { parentId: repository.id, ...(branch ? { name: branch } : {}), initialView: null });
+  const id = standalone?.id ?? store.addWorkspace(granted, { parentId: repository.id, ...(name ? { name } : {}), initialView: null });
   show(id);
   return id;
+}
+
+/** What a worktree is called in lists and the sidebar: its latest agent conversation's title, else its branch. */
+export function worktreeName(worktree: ExistingWorktree): string | undefined {
+  return worktree.conversations?.[0] ?? worktree.branch;
+}
+
+/** Newest first; a worktree whose creation can't be told goes last. */
+export function byNewest(a: ExistingWorktree, b: ExistingWorktree): number {
+  return (b.createdAt ?? 0) - (a.createdAt ?? 0);
 }
 
 /** The workspace showing the checkout at `path`, wherever it sits in the sidebar (another repository workspace may list it). */
