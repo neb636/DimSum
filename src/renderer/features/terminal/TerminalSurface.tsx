@@ -62,10 +62,14 @@ export function TerminalSurface({ controller, ref, root, onOpenPath }: {
     let attached = false;
     let followOutput = true;
     const write = (data: string) => terminal.write(data, () => { if (active && followOutput) terminal.scrollToBottom(); });
+    // Capture phase: xterm's scrollable element stops wheel (and scrollbar pointer) events from bubbling, so a
+    // bubbling listener never learns the person scrolled back and every output frame snapped them to the bottom.
     const wheel = (event: WheelEvent) => { if (event.deltaY < 0) followOutput = false; };
-    const pointer = (event: PointerEvent) => { if ((event.target as HTMLElement).closest(".xterm-viewport, .xterm .scrollbar")) followOutput = false; };
-    host.addEventListener("wheel", wheel, { passive: true });
-    host.addEventListener("pointerdown", pointer);
+    const pointer = (event: PointerEvent) => { if ((event.target as HTMLElement).closest(".xterm .scrollbar")) followOutput = false; };
+    const key = (event: KeyboardEvent) => { if (event.shiftKey && (event.key === "PageUp" || event.key === "Home")) followOutput = false; };
+    host.addEventListener("wheel", wheel, { passive: true, capture: true });
+    host.addEventListener("pointerdown", pointer, { capture: true });
+    host.addEventListener("keydown", key, { capture: true });
     const scroll = terminal.onScroll(() => {
       if (terminal.buffer.active.viewportY === terminal.buffer.active.baseY) followOutput = true;
     });
@@ -99,7 +103,8 @@ export function TerminalSurface({ controller, ref, root, onOpenPath }: {
     return () => {
       active = false; observer.disconnect(); detach(); offExit?.(); offStatus?.(); input.dispose(); scroll.dispose();
       links?.dispose(); terminalRef.current = null;
-      host.removeEventListener("wheel", wheel); host.removeEventListener("pointerdown", pointer); terminal.dispose();
+      host.removeEventListener("wheel", wheel, { capture: true }); host.removeEventListener("pointerdown", pointer, { capture: true });
+      host.removeEventListener("keydown", key, { capture: true }); terminal.dispose();
     };
   }, [controller, root]);
   return <><div className="terminal-host" ref={hostRef} aria-label="Native CLI terminal" {...menu.bind(() => {
