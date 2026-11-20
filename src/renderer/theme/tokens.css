@@ -1,12 +1,12 @@
 /*
- * DimSum's design system, in the manner of a native macOS app: bento cards on a quiet canvas, the system font,
- * the system accent, hairline edges and soft depth. The chrome follows the system's light or dark appearance; code
+ * DimSum's design system, in the manner of a native macOS app: bento cards on a soft canvas, the system font,
+ * monochrome ink in place of a colour accent, pill controls, hairline edges and soft depth. The chrome follows the system's light or dark appearance; code
  * surfaces (terminals, file viewer) stay dark in both. Feature styles consume only these tokens.
  *
  * Scales, used everywhere so every screen lines up:
  *   space    4 · 6 · 8 · 12 · 16 · 20 · 24       (--wb-space-*)
  *   type     11 · 12 · 13 · 15 · 22               (--wb-font-size-*)
- *   radius   5 · 7 · 9 · 12 · 14 · 18             (--wb-radius-*)
+ *   radius   5 · 7 · 9 · 14 · 22 · 26             (--wb-radius-*)
  *   controls 22 small · 28 regular · 32 large    (--wb-control-*)
  */
 :root {
@@ -35,10 +35,11 @@
   --wb-radius-xs: 5px;
   --wb-radius-sm: 7px;
   --wb-radius-md: 9px;
-  --wb-radius-lg: 12px;
-  --wb-radius-xl: 14px;
-  --wb-radius-2xl: 18px;
-  --wb-radius-3xl: 18px;
+  --wb-radius-lg: 14px;
+  --wb-radius-xl: 22px;
+  --wb-radius-2xl: 26px;
+  --wb-radius-3xl: 26px;
+  --wb-radius-pill: 999px;
 
   /* Controls and rows */
   --wb-control-sm: 22px;
@@ -48,10 +49,11 @@
   --wb-header-height: 44px;
 
   /* Canvas and cards */
-  --wb-bg-app: #ececee;
+  --wb-bg-app: #eef0f3;
+  --wb-bg-canvas: linear-gradient(135deg, #f4f5f7 0%, #e9eef3 50%, #f1f0f2 100%);
   --wb-bg-panel: #ffffff;
   --wb-bg-raised: #ffffff;
-  --wb-bg-field: #f3f3f5;
+  --wb-bg-field: #f5f6f8;
   --wb-bg-hover: #0000000a;
   --wb-bg-selected: #00000012;
   --wb-bg-popover: #fffffff0;
@@ -66,20 +68,20 @@
   --wb-text-muted: #a1a1a6;
   --wb-text-inverse: #ffffff;
 
-  /* Accent: the system blue */
-  --wb-accent: #0a7aff;
-  --wb-accent-hover: #0068e0;
-  --wb-accent-soft: #0a7aff1a;
+  /* Accent: monochrome ink, no hue */
+  --wb-accent: #111113;
+  --wb-accent-hover: #2c2c2f;
+  --wb-accent-soft: #0000000d;
   --wb-accent-text: #ffffff;
-  --wb-accent-on-soft: #0062d1;
-  --wb-strong-start: #0a7aff;
-  --wb-strong-end: #0a7aff;
-  --wb-strong-ring: #0a7aff;
-  --wb-focus-ring: #0a7aff59;
+  --wb-accent-on-soft: #1d1d1f;
+  --wb-strong-start: #111113;
+  --wb-strong-end: #111113;
+  --wb-strong-ring: #111113;
+  --wb-focus-ring: #00000029;
 
   /* Status */
   --wb-status-ready: #28a745;
-  --wb-status-working: #0a7aff;
+  --wb-status-working: #3a3a3c;
   --wb-status-warning: #e8820c;
   --wb-status-error: #e5372b;
   --wb-status-idle: #c7c7cc;
@@ -115,8 +117,7 @@
   --wb-shadow-strong: 0 1px 1px #00000014, inset 0 0.5px 0 #ffffff40;
   --wb-popover-blur: blur(24px) saturate(180%);
 
-  /* Controls drawn on an accent fill or on a dark code surface */
-  --wb-on-accent-fill: #ffffff33;
+  /* Controls drawn on a dark code surface */
   --wb-code-control: #ffffff12;
   --wb-code-control-hover: #ffffff1f;
   --wb-code-control-selected: #ffffff26;
@@ -172,6 +173,7 @@
     color-scheme: dark;
 
     --wb-bg-app: #161618;
+    --wb-bg-canvas: linear-gradient(135deg, #18181b 0%, #141518 50%, #19181b 100%);
     --wb-bg-panel: #1f1f22;
     --wb-bg-raised: #2a2a2e;
     --wb-bg-field: #ffffff0d;
@@ -188,17 +190,18 @@
     --wb-text-muted: #6e6e75;
     --wb-text-inverse: #ffffff;
 
-    --wb-accent: #0a84ff;
-    --wb-accent-hover: #3396ff;
-    --wb-accent-soft: #0a84ff29;
-    --wb-accent-on-soft: #5eacff;
-    --wb-strong-start: #0a84ff;
-    --wb-strong-end: #0a84ff;
-    --wb-strong-ring: #0a84ff;
-    --wb-focus-ring: #0a84ff73;
+    --wb-accent: #f5f5f7;
+    --wb-accent-hover: #ffffff;
+    --wb-accent-soft: #ffffff17;
+    --wb-accent-text: #111113;
+    --wb-accent-on-soft: #f5f5f7;
+    --wb-strong-start: #f5f5f7;
+    --wb-strong-end: #f5f5f7;
+    --wb-strong-ring: #f5f5f7;
+    --wb-focus-ring: #ffffff40;
 
     --wb-status-ready: #32d74b;
-    --wb-status-working: #0a84ff;
+    --wb-status-working: #d1d1d6;
     --wb-status-warning: #ff9f0a;
     --wb-status-error: #ff453a;
     --wb-status-idle: #58585e;

@@ -5,7 +5,7 @@
   width: 100%;
   height: 100%;
   padding: var(--wb-space-2) var(--wb-space-2) 0;
-  background: var(--wb-bg-app);
+  background: var(--wb-bg-app) var(--wb-bg-canvas);
 }
 .shell-panels { min-height: 0; }
 .shell-panel { display: flex; min-width: 0; min-height: 0; }
@@ -321,8 +321,7 @@
 .quick-open-item { display: flex; align-items: center; gap: var(--wb-space-2); min-height: var(--wb-control-md); padding: var(--wb-space-1) 10px; border-radius: var(--wb-radius-sm); outline: none; cursor: default; }
 .quick-open-item > svg { color: var(--wb-text-secondary); }
 .quick-open-item small { min-width: 0; overflow: hidden; color: var(--wb-text-secondary); font-size: var(--wb-font-size-sm); text-overflow: ellipsis; white-space: nowrap; }
-.quick-open-item[data-focused], .quick-open-item[data-hovered] { background: var(--wb-accent); color: var(--wb-accent-text); }
-.quick-open-item[data-focused] :is(small, svg), .quick-open-item[data-hovered] :is(small, svg) { color: inherit; opacity: 0.85; }
+.quick-open-item[data-focused], .quick-open-item[data-hovered] { background: var(--wb-bg-selected); }
 
 /* New worktree */
 .wb-modal.worktree-modal { width: min(560px, 92vw); }
