@@ -237,14 +237,21 @@ try {
   await page.keyboard.press("Escape");
   assert.equal(await page.locator(".confirm-warning[role=alert]").count(), 0, "the state saved");
 
+  // So does one in the repository's DIMSUM_WORKTREES folder, which main recognizes by where it sits.
+  git("worktree", "add", "--quiet", "-b", "picked", join(created, "picked"));
+  await app.evaluate(({ dialog }, chosen) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [chosen] }); }, join(created, "picked"));
+  await page.getByRole("button", { name: "Add workspace" }).click();
+  await row("picked").waitFor();
+  assert.equal(await level("picked"), "2");
+
   // Saved with each worktree under its repository, and restored that way.
-  await until(async () => (await savedState()).workspaces.filter((item) => item.parentId === "qa").length === 6, "the state to save");
+  await until(async () => (await savedState()).workspaces.filter((item) => item.parentId === "qa").length === 7, "the state to save");
   const saved = await savedState();
   assert.equal(saved.personas.find((item) => item.id === "old-persona").workspaceId, "qa");
   assert(saved.workspaces.find((item) => item.id === "qa").disabledInstructionIds.includes("turned-off-there"));
   await app.close();
   await launch();
-  for (const name of ["Local", "wb-legacy", "opened", "qa/terminal", sessionBranch, "elsewhere", "added"]) assert.equal(await level(name), "2", name);
+  for (const name of ["Local", "wb-legacy", "opened", "qa/terminal", sessionBranch, "elsewhere", "added", "picked"]) assert.equal(await level(name), "2", name);
   await shot("7-restored");
   // The moved session reopens its conversation in its worktree, the only session there.
   const before = (await readFile(launches, "utf8")).trim().split("\n").length;

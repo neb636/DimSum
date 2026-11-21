@@ -49,7 +49,7 @@ const api: WorkbenchApi = {
     saveNow: (state) => { ipcRenderer.sendSync(IPC.persistenceSaveNow, state); },
   },
   workspace: {
-    chooseDirectory: (startIn) => ipcRenderer.invoke(IPC.workspaceChooseDirectory, startIn) as Promise<string | null>,
+    chooseDirectory: (startIn) => ipcRenderer.invoke(IPC.workspaceChooseDirectory, startIn) as Promise<{ path: string; repository?: string } | null>,
     chooseIcon: () => ipcRenderer.invoke(IPC.workspaceChooseIcon) as Promise<string | null>,
   },
   app: {

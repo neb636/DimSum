@@ -242,8 +242,10 @@ export function registerIpc(ptyManager: PtyManager, agentSessionManager: AgentSe
       buttonLabel: "Add workspace",
     });
     const chosen = result.canceled ? null : result.filePaths[0] ?? null;
-    if (chosen) workspace.roots.add(chosen, workspace.roots.repositoryOf(chosen));
-    return chosen;
+    if (!chosen) return null;
+    const repository = workspace.roots.repositoryOf(chosen);
+    workspace.roots.add(chosen, repository);
+    return { path: chosen, ...(repository ? { repository } : {}) };
   });
   handle(IPC.workspaceChooseIcon, async () => {
     const result = await dialog.showOpenDialog({

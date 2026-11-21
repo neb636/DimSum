@@ -18,7 +18,7 @@ interface WorkbenchStore extends PersistedState {
    * Adds a folder (or selects it when it's already open). A folder that is a worktree of an open workspace is listed
    * under it; `parentId` says so outright. `initialView` is the tab it opens with: an agent session unless told otherwise.
    */
-  addWorkspace: (path: string, options?: { parentId?: string; name?: string; initialView?: "agent" | "terminal" | null }) => string;
+  addWorkspace: (path: string, options?: { parentId?: string; /** The repository main found this folder to be a worktree of. */ repositoryPath?: string; name?: string; initialView?: "agent" | "terminal" | null }) => string;
   /** The built-in Files workspace (files opened from outside every workspace), created the first time it's needed. */
   ensureFilesWorkspace: () => string;
   /** Moves a view to another workspace, as its active tab. */
@@ -90,7 +90,8 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => ({
     const workspaceId = createId("workspace");
     const parent = options.parentId !== undefined
       ? folders.find((workspace) => workspace.id === options.parentId)
-      : folders.find((workspace) => worktreeNameIn(workspace.path, path));
+      // Main knows a worktree's repository from where it sits; the older layout is also recognizable by name.
+      : folders.find((workspace) => (options.repositoryPath !== undefined && workspace.path === options.repositoryPath) || worktreeNameIn(workspace.path, path));
     const repository = parent?.parentId ? folders.find((workspace) => workspace.id === parent.parentId) : parent;
     const kind = options.initialView === undefined ? "agent" : options.initialView;
     const initialView: WorkbenchView | undefined = kind === "agent"

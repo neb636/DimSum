@@ -479,7 +479,8 @@ export interface WorkbenchApi {
   };
   workspace: {
     /** `startIn`: the folder the dialog opens on. Only the folder the person picks becomes a workspace root. */
-    chooseDirectory: (startIn?: string) => Promise<string | null>;
+    /** The chosen folder, and the repository it is a worktree of when it sits in one's worktree folder. */
+    chooseDirectory: (startIn?: string) => Promise<{ path: string; repository?: string } | null>;
     /** Asks for a picture and returns it as a small PNG data URL; null if none was chosen or it couldn't be read. */
     chooseIcon: () => Promise<string | null>;
   };
