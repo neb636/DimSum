@@ -257,8 +257,10 @@ export class AgentSessionManager {
         await sleep(50);
         await this.flush(s);
         current = this.sessions.get(id)?.status;
-        // The CLI saying it took the prompt is enough; otherwise its input editor emptying is.
-        if (current?.lifecycle === "alive" && current.activity !== "waiting-for-input" && (current.inputState === "empty" || s.submitted > s.submittedAtEnter)) {
+        // The CLI saying it took the prompt is enough, even if it asks a question right after (a tool needing
+        // permission); otherwise its input editor emptying, with no question in the way, is.
+        const reported = s.submitted > s.submittedAtEnter;
+        if (current?.lifecycle === "alive" && (reported || (current.activity !== "waiting-for-input" && current.inputState === "empty"))) {
           return { outcome: "submitted", stage, message: plan ? "Planning request handed to the CLI in its Plan mode."
             : current.queuedPrompt ? "Prompt queued by the CLI until it can take it." : "Prompt handed to the CLI." };
         }
