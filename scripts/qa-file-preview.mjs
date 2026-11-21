@@ -41,7 +41,7 @@ await writeFile(join(repo, "README.md"), `# Project notes
 
 [Jump to details](#more-details) · [Weekly report](reports/weekly.html) · [Web](https://example.com/)
 
-![pixel](docs-pixel.png)
+![pixel](docs-pixel.png) ![Remote chart](https://example.com/chart.png) [![Build badge](https://example.com/badge.svg)](https://example.com/ci)
 
 | Column | Value |
 | --- | --- |
@@ -117,6 +117,10 @@ try {
   assert.equal(await window.evaluate(() => window.qaInjected), undefined);
   await until(() => markdown.locator('img[alt="pixel"]').evaluate((image) => image.complete && image.naturalWidth === 1), "picture beside the file");
   assert.equal(await markdown.getByRole("link", { name: "Web" }).getAttribute("target"), "_blank");
+  // Pictures from the web aren't loaded: they show as links.
+  assert.equal(await markdown.locator('img[src^="https:"]').count(), 0);
+  assert.equal(await markdown.getByRole("link", { name: "Remote chart" }).getAttribute("href"), "https://example.com/chart.png");
+  assert.equal(await markdown.getByRole("link", { name: "Build badge" }).getAttribute("href"), "https://example.com/ci");
   await shot("2-markdown-preview");
   await markdown.getByRole("link", { name: "Jump to details" }).click();
   assert.equal(await markdown.locator("#more-details").count(), 1);

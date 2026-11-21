@@ -70,7 +70,16 @@ function MarkdownPreview({ workspaceId, root, text, url }: PreviewProps & { url:
     for (const heading of clean.querySelectorAll("h1, h2, h3, h4, h5, h6")) heading.id = slug(heading.textContent ?? "", used);
     for (const image of clean.querySelectorAll("img")) {
       const src = image.getAttribute("src");
-      if (src && !/^(data|https?):/i.test(src)) image.src = new URL(src, url).href;
+      if (src && /^https?:/i.test(src)) {
+        // The app loads nothing from the web, so a hosted picture (a README badge) shows as a link to it instead, or as
+        // its text inside a link already.
+        const label = image.alt || src;
+        if (image.closest("a")) { image.replaceWith(label); continue; }
+        const link = document.createElement("a");
+        link.href = src;
+        link.textContent = label;
+        image.replaceWith(link);
+      } else if (src && !/^data:/i.test(src)) image.src = new URL(src, url).href;
     }
     for (const link of clean.querySelectorAll("a[href]")) {
       if (/^https?:/i.test(link.getAttribute("href") ?? "")) { link.setAttribute("target", "_blank"); link.setAttribute("rel", "noreferrer"); }

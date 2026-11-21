@@ -105,8 +105,6 @@ function FileEditor({ view, workspace }: ViewComponentProps) {
   const missing = useRef(false);
   const previewRef = useRef(state.preview);
   previewRef.current = state.preview;
-  const displayRef = useRef(state.display);
-  displayRef.current = state.display;
   const [file, setFile] = useState<FileContent>();
   const [error, setError] = useState("");
   const [cursor, setCursor] = useState({ line: 1, column: 1 });
@@ -323,12 +321,10 @@ function FileEditor({ view, workspace }: ViewComponentProps) {
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor || !state.line) return;
-    // A jump to a line shows the code.
-    if (displayRef.current === "preview") useWorkbenchStore.getState().updateViewState(workspace.id, view.id, { display: "code" });
     const line = editor.state.doc.line(Math.min(Math.max(1, state.line), editor.state.doc.lines));
     editor.dispatch({ selection: { anchor: line.from }, effects: EditorView.scrollIntoView(line.from, { y: "center" }) });
     editor.focus();
-  }, [state.line, state.lineNonce, file, workspace.id, view.id]);
+  }, [state.line, state.lineNonce, file]);
 
   const segments = path.split("/");
   const badge = file?.truncated ? "Read-only (over 2 MB)" : state.preview ? "Preview" : dirty ? "Unsaved" : "";
