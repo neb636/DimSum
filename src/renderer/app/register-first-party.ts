@@ -167,18 +167,19 @@ const workbench = defineExtension({
     registerFileCommands();
     registerSourceControlCommands();
     ctx.commands.register("workspace.add", async () => {
-      const path = await window.workbench.workspace.chooseDirectory();
-      if (path) useWorkbenchStore.getState().addWorkspace(path);
+      const chosen = await window.workbench.workspace.chooseDirectory();
+      if (chosen) useWorkbenchStore.getState().addWorkspace(chosen.path, { repositoryPath: chosen.repository });
     });
     // A file opened on its own: its folder (or one above it) becomes a workspace, and the tab moves into it.
     ctx.commands.register<{ viewId: string }>("file.openFolderAsWorkspace", async ({ viewId }) => {
       const view = useWorkbenchStore.getState().workspaces.flatMap((w) => w.views).find((v) => v.id === viewId);
       const { root, path } = (view?.state ?? {}) as Partial<FileViewState>;
       if (!view || !root || !path) return;
-      const folder = await window.workbench.workspace.chooseDirectory(root);
-      if (!folder) return;
+      const chosen = await window.workbench.workspace.chooseDirectory(root);
+      if (!chosen) return;
+      const folder = chosen.path;
       const store = useWorkbenchStore.getState();
-      const workspaceId = store.addWorkspace(folder);
+      const workspaceId = store.addWorkspace(folder, { repositoryPath: chosen.repository });
       const base = folder.replace(/[\\/]+$/, "");
       const absolute = `${root}/${path}`;
       if (absolute.startsWith(`${base}/`)) store.transferView(viewId, workspaceId, { root: base, path: absolute.slice(base.length + 1), preview: false });

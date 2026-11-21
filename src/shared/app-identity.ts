@@ -17,3 +17,7 @@ export const EXTENSION_STATUS_FILE = ".status.json";
 export const SDK_TYPES_DIR = ".sdk";
 /** The guide for agents, written beside a workspace's extensions. */
 export const AGENT_GUIDE_FILE = "AGENTS.md";
+/** `~/dimsum`: a visible folder for what the app makes that people browse and clean up, unlike the settings in `~/.dimsum`. */
+export const APP_HOME_DIR = "dimsum";
+/** `~/dimsum/worktrees/<repository>-<id>/<branch>`: the worktrees the app creates. */
+export const WORKTREES_DIR = "worktrees";

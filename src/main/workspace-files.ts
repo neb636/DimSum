@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { promises as fs, watch, type FSWatcher } from "node:fs";
 import path from "node:path";
 import type { FileContent, FileEntry, FileWriteResult } from "../shared/models";
+import { legacyWorktreeContainer, realOrResolved, worktreeContainer } from "./worktree-location";
 
 const HIDDEN = new Set([".git", ".DS_Store"]);
 const SKIP_WHEN_SEARCHING = new Set([".git", "node_modules"]);
@@ -45,14 +46,10 @@ function toPortable(relative: string): string {
   return relative.split(path.sep).join("/");
 }
 
-/** Worktrees for a workspace are created beside it, in `<workspace>-worktrees/`. */
-export function worktreeContainer(root: string): string {
-  return `${path.resolve(root)}-worktrees`;
-}
-
 /**
- * The directories the renderer may read from: workspace paths and the worktrees created
- * beside them. Every file or source-control request names one of these roots.
+ * The directories the renderer may read from: workspace paths, each worktree by its exact path once it is created or
+ * opened, and anything in an older `<workspace>-worktrees/` folder. Every file or source-control request names one of
+ * these roots.
  */
 export class WorkspaceRoots {
   private roots = new Set<string>();
@@ -99,12 +96,13 @@ export class WorkspaceRoots {
   }
 
   /**
-   * The repository a folder is a worktree of when it sits in a workspace's `<workspace>-worktrees/` (the renderer lists
-   * it under that workspace the same way), so its personal layer is known before anything reads it.
+   * The repository a folder is a worktree of when it sits in that repository's worktree folder (`~/dimsum/worktrees/…`,
+   * or the older `<workspace>-worktrees/`), so its personal layer is known before anything reads it.
    */
   repositoryOf(folder: string): string | undefined {
     const container = path.dirname(path.resolve(folder));
-    const repository = [...this.roots].find((root) => worktreeContainer(root) === container);
+    const real = path.dirname(realOrResolved(folder));
+    const repository = [...this.roots].find((root) => legacyWorktreeContainer(root) === container || worktreeContainer(realOrResolved(root)) === real);
     return repository ? this.parents.get(repository) ?? repository : undefined;
   }
 
@@ -116,7 +114,7 @@ export class WorkspaceRoots {
 
   isAllowed(root: string): boolean {
     const requested = path.resolve(root);
-    return [...this.roots].some((allowed) => requested === allowed || isInside(requested, worktreeContainer(allowed)));
+    return [...this.roots].some((allowed) => requested === allowed || isInside(requested, legacyWorktreeContainer(allowed)));
   }
 
   async directory(requested: string): Promise<string> {
@@ -125,7 +123,7 @@ export class WorkspaceRoots {
       const base = await fs.realpath(root).catch(() => undefined);
       if (!base) continue;
       if (absolute === base || isInside(absolute, base)) return absolute;
-      const container = await fs.realpath(worktreeContainer(root)).catch(() => undefined);
+      const container = await fs.realpath(legacyWorktreeContainer(root)).catch(() => undefined);
       if (container && isInside(absolute, container)) return absolute;
     }
     throw new Error("Terminal folder is outside a workspace.");

@@ -13,7 +13,7 @@ Right-click a workspace to create a new view in it, reveal its folder, open it i
 A workspace that is a Git repository lists its sessions directly until you open a worktree. From then on it lists its checkouts, each with its sessions under it:
 
 - **Local** is the workspace folder itself, with its branch beside it.
-- Each **worktree** is another checkout of the repository on its own branch, in its own folder next to the workspace (`<workspace>-worktrees/`).
+- Each **worktree** is another checkout of the repository on its own branch, in its own folder in `~/dimsum/worktrees/<repository>-<id>/` (the id tells apart repositories with the same name). Worktrees made by older versions, in `<workspace>-worktrees/` next to the workspace, keep working where they are.
 
 Each checkout has its own tabs, so selecting Local or a worktree shows only what is open there. Terminals, the Files panel, Source control and new agent sessions all work in the checkout you are looking at, so you can open a terminal in a worktree to run a command without touching your local checkout.
 

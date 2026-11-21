@@ -67,6 +67,7 @@ export const IPC = {
   sourceControlStashes: "source-control:stashes",
   sourceControlStashAction: "source-control:stash-action",
   sourceControlCreateWorktree: "source-control:create-worktree",
+  sourceControlWorktreeContainer: "source-control:worktree-container",
   sourceControlWorktrees: "source-control:worktrees",
   sourceControlOpenWorktree: "source-control:open-worktree",
   sourceControlWorktreeDetails: "source-control:worktree-details",

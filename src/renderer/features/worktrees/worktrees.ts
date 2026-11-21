@@ -26,6 +26,21 @@ function ask(path: string): void {
     .catch(() => useSupport.setState({ [path]: false }));
 }
 
+/** The folder each repository's new worktrees go in, asked once per repository; undefined until known. */
+const useContainers = create<Record<string, string>>(() => ({}));
+const containersAsked = new Set<string>();
+
+export function useWorktreeContainer(repositoryPath: string): string | undefined {
+  useEffect(() => {
+    if (!repositoryPath || containersAsked.has(repositoryPath)) return;
+    containersAsked.add(repositoryPath);
+    void window.workbench.sourceControl.worktreeContainer(repositoryPath)
+      .then((container) => useContainers.setState({ [repositoryPath]: container }))
+      .catch(() => containersAsked.delete(repositoryPath));
+  }, [repositoryPath]);
+  return useContainers((state) => state[repositoryPath]);
+}
+
 /** True once the folder is known to support worktrees; false while unknown. */
 export function supportsWorktrees(workspace: Workspace | undefined): boolean {
   if (!workspace || isFilesWorkspace(workspace)) return false;

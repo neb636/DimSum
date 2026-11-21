@@ -49,7 +49,7 @@ const api: WorkbenchApi = {
     saveNow: (state) => { ipcRenderer.sendSync(IPC.persistenceSaveNow, state); },
   },
   workspace: {
-    chooseDirectory: (startIn) => ipcRenderer.invoke(IPC.workspaceChooseDirectory, startIn) as Promise<string | null>,
+    chooseDirectory: (startIn) => ipcRenderer.invoke(IPC.workspaceChooseDirectory, startIn) as Promise<{ path: string; repository?: string } | null>,
     chooseIcon: () => ipcRenderer.invoke(IPC.workspaceChooseIcon) as Promise<string | null>,
   },
   app: {
@@ -121,6 +121,7 @@ const api: WorkbenchApi = {
     stashes: (root) => ipcRenderer.invoke(IPC.sourceControlStashes, { root }),
     stashAction: (root, action, id) => ipcRenderer.invoke(IPC.sourceControlStashAction, { root, action, id }),
     createWorktree: (root, branch, base) => ipcRenderer.invoke(IPC.sourceControlCreateWorktree, { root, branch, base }),
+    worktreeContainer: (root) => ipcRenderer.invoke(IPC.sourceControlWorktreeContainer, { root }),
     worktrees: (root) => ipcRenderer.invoke(IPC.sourceControlWorktrees, { root }),
     openWorktree: (root, path, adopting) => ipcRenderer.invoke(IPC.sourceControlOpenWorktree, { root, path, adopting }),
     worktreeDetails: (root) => ipcRenderer.invoke(IPC.sourceControlWorktreeDetails, { root }),

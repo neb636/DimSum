@@ -1,6 +1,8 @@
 import { app, dialog } from "electron";
 import { promises as fs, realpathSync, statSync } from "node:fs";
 import path from "node:path";
+import { isInside } from "./workspace-files";
+import { legacyWorktreeContainer, realOrResolved, worktreeContainer } from "./worktree-location";
 
 const trusted = new Map<string, string>();
 const pending = new Map<string, Promise<void>>();
@@ -11,7 +13,8 @@ const file = () => path.join(app.getPath("userData"), "execution-trust.json");
 const identity = (root: string) => { const stat = statSync(root); return `${stat.dev}:${stat.ino}`; };
 export function isWorkspaceTrusted(root: string): boolean {
   try { const resolved = realpathSync(root); return [...trusted].some(([entry, id]) => {
-    try { return identity(entry) === id && (resolved === entry || resolved.startsWith(entry + "-worktrees" + path.sep)); }
+    // The repository itself, or a worktree in the folder DimSum creates its worktrees in (now or, before, beside it).
+    try { return identity(entry) === id && (resolved === entry || isInside(resolved, legacyWorktreeContainer(entry)) || isInside(resolved, realOrResolved(worktreeContainer(entry)))); }
     catch { return false; }
   }); }
   catch { return false; }

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { FileViewState, Workspace } from "../../../shared/models";
 import { isFilesWorkspace } from "../../../shared/files-workspace";
+import { WORKTREE_SUFFIX } from "../../../shared/workspace-tree";
 import { isViewDirty } from "../../core/dirty-views";
 import { services } from "../../core/services";
 import { useWorkbenchStore } from "../../state/workbench-store";
@@ -24,10 +25,12 @@ function locate(workspaces: Workspace[], absolute: string): { workspaceId: strin
     if (isFilesWorkspace(workspace) || !workspace.path) continue;
     const base = trimEnd(workspace.path);
     let root: string | undefined;
-    if (absolute.startsWith(`${base}-worktrees`) && SEPARATOR.test(absolute.charAt(base.length + 10))) {
-      // A worktree beside the workspace: `<workspace>-worktrees/<name>/…`.
-      const name = absolute.slice(base.length + 11).split(SEPARATOR)[0];
-      if (name) root = `${base}-worktrees${absolute.charAt(base.length + 10)}${name}`;
+    const legacy = `${base}${WORKTREE_SUFFIX}`;
+    if (absolute.startsWith(legacy) && SEPARATOR.test(absolute.charAt(legacy.length))) {
+      // A worktree in the older layout, beside the workspace: `<workspace>-worktrees/<name>/…`. Newer worktrees are open
+      // as workspaces of their own, so the folder check below finds them.
+      const name = absolute.slice(legacy.length + 1).split(SEPARATOR)[0];
+      if (name) root = `${legacy}${absolute.charAt(legacy.length)}${name}`;
     } else if (absolute.startsWith(base) && SEPARATOR.test(absolute.charAt(base.length))) root = base;
     if (!root || absolute.length <= root.length + 1) continue;
     // A worktree open as a workspace of its own wins over its repository, which reaches the same folder by name.

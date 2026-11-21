@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, realpath, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -13,14 +14,18 @@ import { assertQaWindowVisibility, qaEnvironment } from "./qa-environment.mjs";
 //   worktree once opened as its own workspace goes under its repository;
 // - the sidebar's + creates a worktree that opens with a terminal running in the worktree, with its own tabs;
 // - Local keeps its own tabs; an agent launched in a New worktree moves into that worktree's row and runs there;
-// - Close Worktree keeps the folder, and Existing worktrees reopens one, including one outside `<repo>-worktrees/`;
+// - new worktrees are created in DIMSUM_WORKTREES; ones in the older `<repo>-worktrees/` still list, open and are trusted;
+// - Close Worktree keeps the folder, and Existing worktrees reopens one, including one outside either worktree folder;
 // - a worktree reads its repository's personal (.local) settings;
 // - all of it survives a restart;
 // - a repository with no worktrees in the sidebar lists its sessions directly, without a Local row;
 // - closing a worktree's last session offers to close the worktree too, keeping its folder.
 const directory = await realpath(await mkdtemp(join(tmpdir(), "workbench-worktrees-qa-")));
 const repo = join(directory, "repo");
+// Worktrees from before they moved to ~/dimsum/worktrees, beside the repository; the app still lists and trusts them.
 const container = `${repo}-worktrees`;
+// Where the app creates new ones: DIMSUM_WORKTREES (set by qaEnvironment), then `<name>-<hash of the repository's path>`.
+const created = join(directory, "dimsum-home", "worktrees", `repo-${createHash("sha256").update(repo).digest("hex").slice(0, 8)}`);
 const executable = join(directory, "fixture-cli");
 const launches = join(directory, "launches.jsonl");
 const prompts = join(directory, "prompts.jsonl");
@@ -149,7 +154,7 @@ try {
   await shot("2-dialog");
   await dialog.getByRole("button", { name: "Create worktree" }).click();
   await dialog.waitFor({ state: "detached" });
-  const terminalFolder = join(container, "qa-terminal");
+  const terminalFolder = join(created, "qa-terminal");
   assert(existsSync(terminalFolder), "the worktree folder exists");
   await row("qa/terminal").waitFor();
   assert.equal(await level("qa/terminal"), "2");
@@ -176,7 +181,7 @@ try {
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await row(sessionBranch).waitFor();
   assert.equal(await level(sessionBranch), "2");
-  const sessionFolder = join(container, sessionBranch.replace(/[^A-Za-z0-9._-]+/g, "-"));
+  const sessionFolder = join(created, sessionBranch.replace(/[^A-Za-z0-9._-]+/g, "-"));
   await until(async () => (await readFile(launches, "utf8").catch(() => "")).includes(JSON.stringify(sessionFolder).slice(1, -1)), "the CLI to launch in the new worktree");
   await until(async () => (await tabNames()).length === 1, "the session to be the worktree's only tab");
   await until(async () => (await readFile(prompts, "utf8").catch(() => "")).includes("Say hello"), "the prompt to reach the CLI");
@@ -232,14 +237,21 @@ try {
   await page.keyboard.press("Escape");
   assert.equal(await page.locator(".confirm-warning[role=alert]").count(), 0, "the state saved");
 
+  // So does one in the repository's DIMSUM_WORKTREES folder, which main recognizes by where it sits.
+  git("worktree", "add", "--quiet", "-b", "picked", join(created, "picked"));
+  await app.evaluate(({ dialog }, chosen) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [chosen] }); }, join(created, "picked"));
+  await page.getByRole("button", { name: "Add workspace" }).click();
+  await row("picked").waitFor();
+  assert.equal(await level("picked"), "2");
+
   // Saved with each worktree under its repository, and restored that way.
-  await until(async () => (await savedState()).workspaces.filter((item) => item.parentId === "qa").length === 6, "the state to save");
+  await until(async () => (await savedState()).workspaces.filter((item) => item.parentId === "qa").length === 7, "the state to save");
   const saved = await savedState();
   assert.equal(saved.personas.find((item) => item.id === "old-persona").workspaceId, "qa");
   assert(saved.workspaces.find((item) => item.id === "qa").disabledInstructionIds.includes("turned-off-there"));
   await app.close();
   await launch();
-  for (const name of ["Local", "wb-legacy", "opened", "qa/terminal", sessionBranch, "elsewhere", "added"]) assert.equal(await level(name), "2", name);
+  for (const name of ["Local", "wb-legacy", "opened", "qa/terminal", sessionBranch, "elsewhere", "added", "picked"]) assert.equal(await level(name), "2", name);
   await shot("7-restored");
   // The moved session reopens its conversation in its worktree, the only session there.
   const before = (await readFile(launches, "utf8")).trim().split("\n").length;

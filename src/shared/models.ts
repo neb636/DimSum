@@ -479,7 +479,8 @@ export interface WorkbenchApi {
   };
   workspace: {
     /** `startIn`: the folder the dialog opens on. Only the folder the person picks becomes a workspace root. */
-    chooseDirectory: (startIn?: string) => Promise<string | null>;
+    /** The chosen folder, and the repository it is a worktree of when it sits in one's worktree folder. */
+    chooseDirectory: (startIn?: string) => Promise<{ path: string; repository?: string } | null>;
     /** Asks for a picture and returns it as a small PNG data URL; null if none was chosen or it couldn't be read. */
     chooseIcon: () => Promise<string | null>;
   };
@@ -546,6 +547,8 @@ export interface WorkbenchApi {
     stashAction: (root: string, action: SourceControlStashAction, id: string) => Promise<void>;
     /** Starts from `base` (a `BaseBranch.ref`), or the current commit without one. */
     createWorktree: (root: string, branch: string, base?: string) => Promise<WorktreeResult>;
+    /** The folder a repository's new worktrees are created in. */
+    worktreeContainer: (root: string) => Promise<string>;
     /** The repository's other checkouts; empty where the source control has no such idea. */
     worktrees: (root: string) => Promise<ExistingWorktree[]>;
     /**

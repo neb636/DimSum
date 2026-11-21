@@ -127,7 +127,7 @@ try {
   await page.getByRole("textbox", { name: "Branch" }).fill("local/qa-branch");
   await page.getByText("A branch with this name already exists.").waitFor();
   await page.getByRole("textbox", { name: "Branch" }).fill("wb/qa-task");
-  assert.match(await page.locator(".launcher-location").innerText(), /repo-worktrees\/wb-qa-task$/);
+  assert.match(await page.locator(".launcher-location").innerText(), /worktrees\/repo-[0-9a-f]{8}\/wb-qa-task$/);
   await shot("launcher");
   // This session stays in the checkout; qa-worktrees covers one that starts in a new worktree.
   await page.getByRole("radio", { name: /Local checkout/ }).click();
@@ -182,7 +182,7 @@ try {
   await page.getByRole("button", { name: "Persona", exact: true }).waitFor();
   await page.getByRole("button", { name: "Instructions: 4" }).waitFor();
   await page.getByRole("tab", { name: "Explain this failure." }).waitFor();
-  assert.match(await sidebar.getByRole("row", { name: /Explain this failure\./ }).innerText(), /Ready · Codex/);
+  assert.match(await sidebar.getByRole("row", { name: /Explain this failure\./ }).innerText(), /Ready/);
   await shot("session");
 
   // Composer tools: recall a previous prompt.

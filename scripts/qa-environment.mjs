@@ -4,7 +4,9 @@
 export function qaEnvironment(overrides = {}) {
   const home = overrides.DIMSUM_HOME ?? (overrides.WORKBENCH_USER_DATA_DIR ? `${overrides.WORKBENCH_USER_DATA_DIR}/dimsum-home` : undefined);
   if (!home) throw new Error("QA needs WORKBENCH_USER_DATA_DIR or DIMSUM_HOME so it never writes to ~/.dimsum.");
-  return { ...process.env, ...overrides, DIMSUM_HOME: home, WORKBENCH_QA_HIDDEN: process.env.QA_VISIBLE === "1" ? "0" : "1" };
+  // New worktrees go in DIMSUM_WORKTREES, never ~/dimsum/worktrees.
+  const worktrees = overrides.DIMSUM_WORKTREES ?? `${home}/worktrees`;
+  return { ...process.env, ...overrides, DIMSUM_HOME: home, DIMSUM_WORKTREES: worktrees, WORKBENCH_QA_HIDDEN: process.env.QA_VISIBLE === "1" ? "0" : "1" };
 }
 
 export async function assertQaWindowVisibility(app) {
