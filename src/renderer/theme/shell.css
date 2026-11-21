@@ -57,7 +57,8 @@
 .workspace-tree { flex: 1; min-height: 0; overflow: auto; padding: var(--wb-space-1) var(--wb-space-2) var(--wb-space-2); outline: none; }
 .workspace-tree [role="row"] { outline: none; }
 .workspace-row:not(:first-child) { margin-top: var(--wb-space-1); }
-/* Every row is one line. Each level is indented by one chevron and gap, so a row's icon sits under its parent's chevron... */
+/* Every row is one line. A row's icon doubles as its chevron, and each level is indented by about half an icon, so a
+   child's icon starts under its parent's icon's centre... */
 .workspace-row-content, .checkout-row-content, .session-row-content {
   --wb-tree-indent: 0px;
   display: flex;
@@ -70,8 +71,8 @@
   transition: background-color 100ms;
 }
 .workspace-row-content { min-height: 32px; }
-.workspace-tree [aria-level="2"] > * > :is(.checkout-row-content, .session-row-content) { --wb-tree-indent: 22px; }
-.workspace-tree [aria-level="3"] > * > .session-row-content { --wb-tree-indent: 44px; }
+.workspace-tree [aria-level="2"] > * > :is(.checkout-row-content, .session-row-content) { --wb-tree-indent: 12px; }
+.workspace-tree [aria-level="3"] > * > .session-row-content { --wb-tree-indent: 24px; }
 .workspace-row[data-hovered] .workspace-row-content, .checkout-row[data-hovered] .checkout-row-content, .session-row[data-hovered] .session-row-content { background: var(--wb-bg-hover); }
 .workspace-row[data-focus-visible] .workspace-row-content, .session-row[data-focus-visible] .session-row-content, .checkout-row[data-focus-visible] .checkout-row-content { box-shadow: inset 0 0 0 2px var(--wb-focus-ring); }
 .workspace-icon {
@@ -88,7 +89,7 @@
 .workspace-icon img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
 .workspace-row.is-active .workspace-icon { background: var(--wb-accent-soft); color: var(--wb-accent); box-shadow: none; }
 /* ...and a session's status dot sits under its parent's icon, its title under its parent's name. */
-.tree-icon { display: grid; place-items: center; flex: none; width: 22px; height: 22px; color: var(--wb-text-secondary); }
+.tree-icon { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: var(--wb-radius-xs); color: var(--wb-text-secondary); }
 .tree-label { display: flex; flex: 1; align-items: baseline; gap: var(--wb-space-1-5); min-width: 0; }
 .tree-label strong, .session-title { overflow: hidden; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 .tree-label strong { flex: 0 1 auto; min-width: 0; }
@@ -118,6 +119,29 @@
 .tree-chevron.is-expanded { transform: rotate(90deg); }
 .tree-chevron[data-hovered] { color: var(--wb-text-primary); }
 .tree-chevron-spacer { flex: none; width: 16px; }
+.tree-toggle { position: relative; }
+.tree-toggle-icon { display: grid; place-items: center; width: 100%; height: 100%; border-radius: inherit; transition: opacity 100ms; }
+.tree-toggle-chevron {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: var(--wb-text-secondary);
+  opacity: 0;
+  outline: none;
+  transition: opacity 100ms;
+}
+.tree-toggle-chevron svg { transition: transform 150ms ease; }
+.tree-toggle-chevron.is-expanded svg { transform: rotate(90deg); }
+.tree-toggle-chevron[data-hovered] { background: var(--wb-bg-selected); color: var(--wb-text-primary); }
+.tree-toggle-chevron[data-focus-visible] { box-shadow: inset 0 0 0 2px var(--wb-focus-ring); }
+/* ...and swaps to its chevron while the row is hovered or focused. */
+.workspace-tree [role="row"]:is([data-hovered], [data-focus-visible]) .tree-toggle-chevron, .tree-toggle-chevron[data-focus-visible] { opacity: 1; }
+.workspace-tree [role="row"]:is([data-hovered], [data-focus-visible]) .has-chevron > .tree-toggle-icon, .has-chevron:has(> [data-focus-visible]) > .tree-toggle-icon { opacity: 0; }
 .row-action {
   display: grid;
   place-items: center;
@@ -458,11 +482,10 @@
 /* Narrow sidebars: keep names readable by dropping counts and tightening the tree's indents. */
 .left-sidebar, .right-sidebar { container-type: inline-size; }
 @container (max-width: 230px) {
-  .workspace-tree [aria-level="2"] > * > :is(.checkout-row-content, .session-row-content) { --wb-tree-indent: 12px; }
-  .workspace-tree [aria-level="3"] > * > .session-row-content { --wb-tree-indent: 24px; }
+  .workspace-tree [aria-level="2"] > * > :is(.checkout-row-content, .session-row-content) { --wb-tree-indent: 8px; }
+  .workspace-tree [aria-level="3"] > * > .session-row-content { --wb-tree-indent: 16px; }
   .session-status, .tree-label small { display: none; }
   .side-panel-header .wb-icon-button { width: 22px; height: 22px; }
-  .workspace-tree .workspace-icon { display: none; }
   .panel-list-item small { display: none; }
   /* Hover actions take no width until their row is hovered or focused; they stay in the accessibility tree. */
   [role="row"] .row-action:not([aria-expanded="true"]) { width: 0; margin: 0; overflow: hidden; }
