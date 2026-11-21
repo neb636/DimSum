@@ -374,10 +374,4 @@ export function registerComposerContributions(): void {
     updateRuntime(target.viewId, { resumeError: undefined, result: undefined });
     patchView(target, { conversation: null, modelSettings: {} });
   });
-  services.commands.register<ComposerTarget>("agent.session.reset", (target) => {
-    closeAgentRuntime(target.viewId);
-    clearComposerRuntime(target.viewId);
-    patchView(target, { promptSelections: {}, conversation: null, modelSettings: {} });
-    patchComposer(target, { draft: "", attachments: [], intent: "default" });
-  });
 }

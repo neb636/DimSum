@@ -150,11 +150,11 @@ try {
   await shot("instructions-menu");
   await page.keyboard.press("Escape");
 
-  // No model is chosen for a new session, so neither Send nor Start session can go yet.
+  // No model is chosen for a new session, so Send can't go yet and Start session isn't offered.
   await prompt().fill("Waiting for a model");
   await page.getByRole("button", { name: /Select model/ }).waitFor();
   assert.equal(await page.getByRole("button", { name: "Send prompt", exact: true }).isDisabled(), true);
-  assert.equal(await page.getByRole("button", { name: "Start session", exact: true }).isDisabled(), true);
+  assert.equal(await page.getByRole("button", { name: "Start session", exact: true }).count(), 0);
   assert.equal(await page.getByRole("button", { name: "Resume previous…", exact: true }).isDisabled(), false);
   await waitFeedback("Choose a model to start.");
   await shot("no-model-selected");
@@ -190,11 +190,10 @@ try {
   await page.getByRole("button", { name: "Use as draft" }).click();
   assert.equal(await prompt().inputValue(), "Explain this failure.");
 
-  // Uncertain delivery keeps the draft and offers the terminal handoff.
+  // Uncertain delivery keeps the draft and leaves the CLI waiting for input in the terminal.
   await prompt().fill("UNCERTAIN");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await page.waitForFunction(() => document.querySelector(".session-pill")?.textContent.includes("Needs input"));
-  await page.getByRole("button", { name: "Focus terminal" }).waitFor();
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.focus());
   await page.locator(".xterm-helper-textarea").focus();
   // Allow the terminal focus handoff to settle before native keyboard dispatch.
@@ -353,13 +352,6 @@ try {
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await page.waitForFunction(() => document.querySelector(".composer-feedback")?.textContent.includes("Prompt handed"));
   assert.equal((await prompts()).at(-1).plan, false);
-  // A new conversation is a new session: the model has to be chosen again.
-  await page.getByRole("button", { name: "New conversation" }).click();
-  await page.getByRole("heading", { name: "Start a new session" }).waitFor();
-  await page.getByRole("button", { name: /Select model/ }).waitFor();
-  await prompt().fill("Needs a model again");
-  assert.equal(await page.getByRole("button", { name: "Send prompt", exact: true }).isDisabled(), true);
-  await prompt().fill("");
 
   // A first Plan prompt waits out startup work instead of being refused.
   await page.getByRole("tab", { name: "Plan held" }).click();
