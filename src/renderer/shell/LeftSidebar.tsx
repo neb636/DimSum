@@ -1,6 +1,6 @@
 import { useContextMenu } from "../ui/ContextMenu";
 import { viewActions, workspaceActions } from "../features/views/view-actions";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Button as AriaButton, Tree, TreeItem, TreeItemContent, type Key } from "react-aria-components";
 import type { WorkbenchView, Workspace } from "../../shared/models";
 import { services } from "../core/services";
@@ -32,10 +32,15 @@ function WorkspaceMeta({ workspace }: { workspace: Workspace }) {
   })}</>;
 }
 
-function Chevron({ isExpanded, hasChildItems, name }: { isExpanded: boolean; hasChildItems: boolean; name: string }) {
-  return hasChildItems
-    ? <AriaButton slot="chevron" className={`tree-chevron ${isExpanded ? "is-expanded" : ""}`} aria-label={isExpanded ? `Collapse ${name}` : `Expand ${name}`}><ChevronRightIcon size={11} /></AriaButton>
-    : <span className="tree-chevron-spacer" />;
+/**
+ * A row's icon, which becomes its expand/collapse chevron while the row is hovered or focused, so the tree spends no
+ * width on a separate chevron column.
+ */
+function TreeToggle({ isExpanded, hasChildItems, name, className, children }: { isExpanded: boolean; hasChildItems: boolean; name: string; className: string; children: ReactNode }) {
+  return <span className={`tree-toggle ${className} ${hasChildItems ? "has-chevron" : ""}`}>
+    <span className="tree-toggle-icon">{children}</span>
+    {hasChildItems && <AriaButton slot="chevron" className={`tree-toggle-chevron ${isExpanded ? "is-expanded" : ""}`} aria-label={isExpanded ? `Collapse ${name}` : `Expand ${name}`}><ChevronRightIcon size={12} /></AriaButton>}
+  </span>;
 }
 
 /**
@@ -77,8 +82,7 @@ function CheckoutRow({ workspace, isLocal, isActive, statuses, menu }: { workspa
     className={`checkout-row ${isActive ? "is-active" : ""}`} {...menu.bind(() => workspaceActions(workspace))}>
     <TreeItemContent>
       {({ isExpanded, hasChildItems }) => <div className="checkout-row-content" title={workspace.path}>
-        <Chevron isExpanded={isExpanded} hasChildItems={hasChildItems} name={label} />
-        <span className="tree-icon">{isLocal ? <FolderIcon size={13} /> : <BranchIcon size={13} />}</span>
+        <TreeToggle isExpanded={isExpanded} hasChildItems={hasChildItems} name={label} className="tree-icon">{isLocal ? <FolderIcon size={13} /> : <BranchIcon size={13} />}</TreeToggle>
         <span className="tree-label">
           <strong>{label}</strong>
           {/* Local's branch; a worktree is named after its own. */}
@@ -113,8 +117,7 @@ function WorkspaceRow({ workspace, worktrees, activeWorkspaceId, statuses, menu 
     className={`workspace-row ${isActive ? "is-active" : ""}`} {...menu.bind(() => workspaceActions(workspace))}>
     <TreeItemContent>
       {({ isExpanded, hasChildItems }) => <div className="workspace-row-content" title={files ? "Files opened on their own" : workspace.path}>
-        <Chevron isExpanded={isExpanded} hasChildItems={hasChildItems} name={workspace.name} />
-        <span className="workspace-icon">{workspace.icon ? <img src={workspace.icon} alt="" draggable={false} /> : files ? <FileIcon size={14} /> : <FolderIcon size={14} />}</span>
+        <TreeToggle isExpanded={isExpanded} hasChildItems={hasChildItems} name={workspace.name} className="workspace-icon">{workspace.icon ? <img src={workspace.icon} alt="" draggable={false} /> : files ? <FileIcon size={14} /> : <FolderIcon size={14} />}</TreeToggle>
         <span className="tree-label">
           <strong>{workspace.name}</strong>
           {/* Grouped, the branch is on Local's row. */}
