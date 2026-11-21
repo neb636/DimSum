@@ -91,7 +91,7 @@ try {
 
   const page = window.frameLocator('iframe[title="Preview of reports/weekly.html"]');
   await page.locator("#external", { hasText: "external script ran" }).waitFor();
-  assert.equal(await page.locator("#styled").evaluate((element) => getComputedStyle(element).color), "rgb(1, 2, 3)");
+  assert.equal(await page.locator("#styled").evaluate((element) => element.ownerDocument.defaultView.getComputedStyle(element).color), "rgb(1, 2, 3)");
   await until(async () => (await page.locator("#probe").textContent()).startsWith("{"), "probe");
   assert.deepEqual(JSON.parse(await page.locator("#probe").textContent()), { preload: "undefined", parent: "refused", data: 42, git: 404, web: "blocked" });
   await window.getByText("Preview · showing the saved file").waitFor();
