@@ -18,7 +18,7 @@ import { services } from "../../core/services";
 import type { ViewStatus } from "../../core/view-status";
 import { Button, IconButton } from "../../ui/controls";
 import { useGuardedTooltip } from "../../ui/use-guarded-tooltip";
-import { ArrowUpIcon, ChevronDownIcon, FilesIcon, HistoryIcon, NewChatIcon, PlusIcon, StopIcon } from "../../ui/icons";
+import { ArrowUpIcon, ChevronDownIcon, FilesIcon, HistoryIcon, PlusIcon, StopIcon } from "../../ui/icons";
 import { errorMessage } from "../../core/errors";
 import { MAX_ATTACHMENTS } from "../../../shared/prompt-attachments";
 import { isUnusedConversation, useAgentRuntimes } from "../../core/agent-runtimes";
@@ -172,7 +172,6 @@ export function AgentComposer({ workspaceId, viewId, agentLabel, state, session,
             </Dialog>
           </Popover>
         </DialogTrigger>
-        <Button className="strip-button" onPress={() => void services.commands.execute("agent.session.reset", target)}><NewChatIcon size={13} />New conversation</Button>
       </div>
     </div>}
     <div className={`composer-box ${dropping ? "is-dropping" : ""}`} onDragOver={dragOver} onDrop={drop}
