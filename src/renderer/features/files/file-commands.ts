@@ -64,8 +64,8 @@ export function registerFileCommands(): void {
     const workspace = store.workspaces.find((item) => item.id === workspaceId);
     if (!workspace) return;
     const title = path.split("/").at(-1) ?? path;
-    // A jump to a line shows the code (an HTML or Markdown tab may be showing its preview).
-    const jump: Partial<FileViewState> = line ? { line, lineNonce: Date.now(), display: "code" } : {};
+    // A jump to a line or a requested diff shows the code (an HTML or Markdown tab may be showing its preview).
+    const jump: Partial<FileViewState> = { ...(line ? { line, lineNonce: Date.now() } : {}), ...(line || diff ? { display: "code" } : {}) };
     const view: Partial<FileViewState> = { ...jump, ...(diff !== undefined ? { diff } : {}), ...(diffBase ? { diffBase } : {}) };
     const existing = workspace.views.find((item) => item.type === "file" && fileState(item.state)?.root === root && fileState(item.state)?.path === path);
     if (existing) {
