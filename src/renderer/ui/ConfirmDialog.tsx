@@ -1,14 +1,27 @@
-import { useSyncExternalStore } from "react";
-import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
+import { useState, useSyncExternalStore } from "react";
+import { Button, Checkbox, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { IconButton } from "./controls";
-import { CloseIcon, TrashIcon } from "./icons";
-import { answerConfirmation as finish, pendingConfirmation } from "./confirm";
+import { CheckIcon, CloseIcon, TrashIcon } from "./icons";
+import { answerConfirmation, pendingConfirmation, type ConfirmationRequest } from "./confirm";
 
 /** Mounted once by the shell; shows whatever `confirmDestructive` is asking. */
 export function ConfirmDialogHost() {
   const request = useSyncExternalStore(pendingConfirmation.subscribe, pendingConfirmation.get);
-  if (!request) return null;
-  const { subject } = request;
+  // A fresh dialog per request, so its checkbox starts from the request's own default.
+  return request ? <ConfirmDialog key={requestKey(request)} request={request} /> : null;
+}
+
+const keys = new WeakMap<object, number>();
+let next = 0;
+function requestKey(request: ConfirmationRequest): number {
+  if (!keys.has(request)) keys.set(request, next++);
+  return keys.get(request) ?? 0;
+}
+
+function ConfirmDialog({ request }: { request: ConfirmationRequest }) {
+  const { subject, option } = request;
+  const [chosen, setChosen] = useState(option?.selected ?? false);
+  const finish = (confirmed: boolean) => answerConfirmation(confirmed, Boolean(option) && chosen);
   return <ModalOverlay className="wb-modal-overlay confirm-overlay" isOpen isDismissable onOpenChange={(open) => { if (!open) finish(false); }}>
     <Modal className="wb-modal wb-alert confirm-modal">
       <Dialog role="alertdialog" className="wb-dialog confirm-dialog">
@@ -28,6 +41,13 @@ export function ConfirmDialogHost() {
             {subject.meta && <code className="confirm-subject-meta" title={subject.meta}><bdi>{subject.meta}</bdi></code>}
           </span>
         </div>
+        {option && <Checkbox className="wb-checkbox confirm-option" isSelected={chosen} onChange={setChosen}>
+          <span className="checkbox-box"><CheckIcon size={11} /></span>
+          <span className="confirm-option-copy">
+            <span>{option.label}</span>
+            {option.detail && <small>{option.detail}</small>}
+          </span>
+        </Checkbox>}
         <div className="dialog-actions confirm-actions">
           {/* Focus starts on Cancel, so Enter never removes anything by accident. */}
           <Button autoFocus className="wb-button confirm-cancel" onPress={() => finish(false)}>Cancel</Button>

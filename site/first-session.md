@@ -4,7 +4,7 @@ This walks through opening a folder and sending a first prompt to an agent.
 
 ## Add a workspace
 
-Select **Add workspace** (the + at the top of the left sidebar) and choose a folder. The folder becomes a workspace in the sidebar. Its sessions, terminals and open files are listed under it. A Git repository shows **Local** under it, and any [worktrees](/guide/workbench#local-and-worktrees) you make beside it.
+Select **Add workspace** (the + at the top of the left sidebar) and choose a folder. The folder becomes a workspace in the sidebar. Its sessions, terminals and open files are listed under it. Once you make a [worktree](/guide/workbench#local-and-worktrees) of a Git repository, the repository lists **Local** (its own folder) and each worktree under it, each with its own sessions.
 
 ## Start an agent session
 
