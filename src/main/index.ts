@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, MenuItem, nativeTheme, shell
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { AgentModelCatalogue } from "./agent-model-catalogue";
+import { AgentLifecycleChannel } from "./agent-lifecycle-channel";
 import { AgentSessionManager } from "./agent-session-manager";
 import { CommitMessages } from "./internal-ai/commit-message";
 import { InternalAiService } from "./internal-ai/internal-ai-service";
@@ -38,7 +39,9 @@ const attachments = new PromptAttachments(() => path.join(app.getPath("userData"
 const agentProviders = [new CodexAgentProvider(), new ClaudeAgentProvider()];
 const agentModels = new AgentModelCatalogue(agentProviders);
 const aiUsage = createAiUsage(agentProviders);
-const agentSessionManager = new AgentSessionManager(agentProviders, undefined, (viewId) => attachments.folderFor(viewId), agentModels, [aiUsage.launchArgs], isWorkspaceTrusted);
+const lifecycleChannel = new AgentLifecycleChannel();
+const agentSessionManager = new AgentSessionManager(agentProviders, undefined, (viewId) => attachments.folderFor(viewId), agentModels, [aiUsage.launchArgs], isWorkspaceTrusted,
+  lifecycleChannel);
 const internalAi = new InternalAiService(agentProviders, () => path.join(app.getPath("userData"), "internal-ai"));
 const resources = new ResourceMonitor([ptyManager, agentSessionManager]);
 const roots = new WorkspaceRoots();
@@ -227,5 +230,5 @@ app.on("before-quit", (event) => {
   agentModels.stop();
   aiUsage.stop();
   internalAi.terminateAll();
-  void Promise.allSettled([agentSessionManager.terminateAll(QUIT_GRACE_MS), ptyManager.terminateAll(QUIT_GRACE_MS)]).then(() => app.quit());
+  void Promise.allSettled([agentSessionManager.terminateAll(QUIT_GRACE_MS), ptyManager.terminateAll(QUIT_GRACE_MS)]).then(() => { lifecycleChannel.dispose(); app.quit(); });
 });

@@ -15,6 +15,7 @@ Use the ids in [instruction conditions](/configure/config-files#conditions) and 
 - Model and effort come from the composer's pickers and are passed to `claude` when it starts.
 - Attachment folders are passed with `--add-dir`, so Claude Code can read attached files.
 - **Plan** mode uses Claude Code's own plan mode.
+- Session status (working, ready, needs input) comes from Claude Code's [hooks](https://code.claude.com/docs/en/hooks). DimSum passes them with `--settings` for that session only, so your settings files are not edited, and your own hooks still run alongside them. They need macOS or Linux with `curl`. If no hook ever reports (when hooks are turned off, for example), DimSum reads the status from the terminal screen instead.
 
 ## Codex
 
