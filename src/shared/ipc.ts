@@ -43,6 +43,7 @@ export const IPC = {
   filesWrite: "files:write",
   filesSearch: "files:search",
   filesImage: "files:image",
+  filesPreviewUrl: "files:preview-url",
   filesExists: "files:exists",
   filesCreate: "files:create",
   filesRename: "files:rename",

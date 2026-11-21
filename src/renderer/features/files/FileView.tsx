@@ -23,6 +23,8 @@ import type { TextSelection } from "../../core/context-menu-registry";
 import { SelectionActions } from "./SelectionActions";
 import { sendShortcut, takesSelections } from "./selection-target";
 import { isFilesWorkspace } from "../../../shared/files-workspace";
+import { previewKind } from "../../../shared/file-preview";
+import { FilePreview } from "./FilePreview";
 
 const PICTURE = /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/i;
 const DIFF_BASES: Record<DiffBase, string> = { head: "Last commit", default: "Default branch" };
@@ -111,6 +113,11 @@ function FileEditor({ view, workspace }: ViewComponentProps) {
   const [notice, setNotice] = useState("");
   const [original, setOriginal] = useState<string | null | undefined>(undefined);
   const picture = PICTURE.test(path);
+  const kind = picture ? undefined : previewKind(path);
+  const previewing = Boolean(kind) && state.display === "preview";
+  /** Bumped when the editor's text changes, so the Markdown preview follows it. */
+  const [, setDocVersion] = useState(0);
+  const [reloadPage, setReloadPage] = useState(0);
   const frameRef = useRef<HTMLDivElement>(null);
   const [sendable] = useState(takesSelections);
   const [pill, setPill] = useState<{ top: number; left: number }>();
@@ -260,6 +267,7 @@ function FileEditor({ view, workspace }: ViewComponentProps) {
         EditorView.updateListener.of((change) => {
           if (change.selectionSet || change.docChanged || change.geometryChanged || change.viewportChanged) placePill(change.view);
           if (change.docChanged) {
+            setDocVersion((value) => value + 1);
             const isDirty = !change.state.doc.eq(saved.current);
             markDirty(isDirty);
             // Typing keeps a preview tab.
@@ -327,9 +335,15 @@ function FileEditor({ view, workspace }: ViewComponentProps) {
         <nav aria-label="File path">{segments.map((segment, index) => <span key={`${segment}-${index}`} className={index === segments.length - 1 ? "is-current" : ""}>{segment}</span>)}</nav>
         {badge && <span className={`code-badge ${dirty ? "is-dirty" : ""}`}>{badge}</span>}
         {!picture && <span className="code-actions">
+          {kind && <ToggleButtonGroup aria-label="Show" className="segmented code-segmented" selectionMode="single" disallowEmptySelection
+            selectedKeys={[previewing ? "preview" : "code"]} onSelectionChange={(keys) => { const key = [...keys][0]; if (key) update({ display: key as "code" | "preview" }); }}>
+            <ToggleButton id="code" className="segment">Code</ToggleButton>
+            <ToggleButton id="preview" className="segment">Preview</ToggleButton>
+          </ToggleButtonGroup>}
+          {previewing && kind === "html" && <Button className="code-tool" onPress={() => setReloadPage((value) => value + 1)}>Reload</Button>}
           {/* A file opened on its own has no workspace history to compare against. */}
-          {!isFilesWorkspace(workspace) && <ToggleButton className="code-tool" isSelected={Boolean(state.diff)} onChange={(diff) => update({ diff })}>Diff</ToggleButton>}
-          {state.diff && !isFilesWorkspace(workspace) && <ToggleButtonGroup aria-label="Compare with" className="segmented code-segmented" selectionMode="single" disallowEmptySelection
+          {!previewing && !isFilesWorkspace(workspace) && <ToggleButton className="code-tool" isSelected={Boolean(state.diff)} onChange={(diff) => update({ diff })}>Diff</ToggleButton>}
+          {!previewing && state.diff && !isFilesWorkspace(workspace) && <ToggleButtonGroup aria-label="Compare with" className="segmented code-segmented" selectionMode="single" disallowEmptySelection
             selectedKeys={[diffBase]} onSelectionChange={(keys) => { const key = [...keys][0]; if (key) update({ diffBase: key as DiffBase }); }}>
             {(Object.keys(DIFF_BASES) as DiffBase[]).map((base) => <ToggleButton key={base} id={base} className="segment">{DIFF_BASES[base]}</ToggleButton>)}
           </ToggleButtonGroup>}
@@ -345,7 +359,10 @@ function FileEditor({ view, workspace }: ViewComponentProps) {
       {picture ? <PictureView root={root} path={path} />
         : error ? <div className="code-message" role="alert">{error}</div>
           : file?.binary ? <div className="code-message">This file looks binary, so it is not shown.</div>
-            : <div className="code-editor-frame" ref={frameRef}><div className="code-editor" ref={hostRef} {...menu.bind(() => {
+            : <>{previewing && kind && file && <FilePreview workspaceId={workspace.id} root={root} path={path} kind={kind} reload={reloadPage}
+              text={editorRef.current?.state.doc.toString() ?? file.content} />}
+            {/* Kept while the preview shows, hidden, so its edits, undo and cursor are there on the way back. */}
+            <div className="code-editor-frame" ref={frameRef} hidden={previewing}><div className="code-editor" ref={hostRef} {...menu.bind(() => {
           const editor = editorRef.current;
           if (!editor) return [];
           const writable = !file?.truncated && !editor.state.readOnly;
@@ -364,12 +381,12 @@ function FileEditor({ view, workspace }: ViewComponentProps) {
             { id: "save", label: "Save", disabled: !writable || !dirty, section: "save", run: () => save() },
           ];
         })} />
-            {sendable && (pill || sending) && <SelectionActions workspace={workspace} selection={sending}
+            {sendable && !previewing && (pill || sending) && <SelectionActions workspace={workspace} selection={sending}
               position={pill ?? { top: 8, left: Math.max(8, (frameRef.current?.clientWidth ?? 0) - PILL_WIDTH - 16) }}
               onOpen={openSend} onClose={closeSend} onError={(caught) => setNotice(errorMessage(caught))} />}
-          </div>}
+          </div></>}
       <div className="code-footer">
-        <span>Ln {cursor.line}, Col {cursor.column} · LF · UTF-8{state.diff ? ` · diff vs ${DIFF_BASES[diffBase].toLowerCase()}${original === null ? " (new file)" : ""}` : ""}</span>
+        <span>{previewing ? kind === "html" && dirty ? "Preview · showing the saved file" : "Preview" : <>Ln {cursor.line}, Col {cursor.column} · LF · UTF-8{state.diff ? ` · diff vs ${DIFF_BASES[diffBase].toLowerCase()}${original === null ? " (new file)" : ""}` : ""}</>}</span>
         <span>{notice && <span className="code-notice">{notice} · </span>}{file ? `${formatSize(file.size)}${file.truncated ? " · showing the first 2 MB" : ""}` : picture ? "Picture" : "Loading…"}</span>
       </div>
     </div>

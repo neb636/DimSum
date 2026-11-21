@@ -65,6 +65,35 @@
   background: repeating-conic-gradient(var(--wb-bg-field) 0 25%, var(--wb-bg-raised) 0 50%) 0 0 / 20px 20px; }
 .picture-view img { max-width: 100%; max-height: 100%; border-radius: var(--wb-radius-xs); object-fit: contain; box-shadow: var(--wb-shadow-card); }
 
+/* Code / Preview for HTML and Markdown files. */
+.code-editor-frame[hidden] { display: none; }
+.file-preview { flex: 1; min-height: 0; overflow: auto; }
+.file-preview.is-page { display: flex; overflow: hidden; }
+.file-preview-frame { flex: 1; border: 0; background: var(--wb-page-bg); }
+.markdown-preview { max-width: 860px; margin: 0 auto; padding: var(--wb-space-5) var(--wb-space-6) calc(var(--wb-space-6) * 2); color: var(--wb-code-fg); font-size: 14px; line-height: 1.65; overflow-wrap: break-word; user-select: text; }
+.markdown-preview > :first-child { margin-top: 0; }
+.markdown-preview h1, .markdown-preview h2, .markdown-preview h3, .markdown-preview h4, .markdown-preview h5, .markdown-preview h6 { margin: 1.4em 0 0.5em; line-height: 1.25; font-weight: 650; scroll-margin-top: var(--wb-space-4); }
+.markdown-preview h1 { font-size: 1.9em; padding-bottom: 0.3em; border-bottom: 1px solid var(--wb-code-border); }
+.markdown-preview h2 { font-size: 1.45em; padding-bottom: 0.25em; border-bottom: 1px solid var(--wb-code-border); }
+.markdown-preview h3 { font-size: 1.2em; }
+.markdown-preview h4, .markdown-preview h5, .markdown-preview h6 { font-size: 1em; }
+.markdown-preview h6 { color: var(--wb-code-muted); }
+.markdown-preview p, .markdown-preview ul, .markdown-preview ol, .markdown-preview blockquote, .markdown-preview pre, .markdown-preview table { margin: 0 0 1em; }
+.markdown-preview ul, .markdown-preview ol { padding-left: 1.8em; }
+.markdown-preview li + li { margin-top: 0.25em; }
+.markdown-preview li > input[type="checkbox"] { margin: 0 0.4em 0 -1.3em; vertical-align: middle; }
+.markdown-preview a { color: var(--wb-code-cursor); text-decoration: none; }
+.markdown-preview a:hover { text-decoration: underline; }
+.markdown-preview code { padding: 0.15em 0.4em; border-radius: var(--wb-radius-xs); background: var(--wb-code-control); font-family: var(--wb-font-mono); font-size: 0.88em; }
+.markdown-preview pre { padding: var(--wb-space-3) var(--wb-space-4); overflow: auto; border-radius: var(--wb-radius-sm); background: var(--wb-code-chrome); border: 1px solid var(--wb-code-border); line-height: 1.5; }
+.markdown-preview pre code { padding: 0; background: none; font-size: 0.85em; }
+.markdown-preview blockquote { padding: 0 1em; border-left: 3px solid var(--wb-code-border); color: var(--wb-code-muted); }
+.markdown-preview hr { height: 1px; margin: 1.5em 0; border: 0; background: var(--wb-code-border); }
+.markdown-preview table { display: block; width: max-content; max-width: 100%; overflow: auto; border-collapse: collapse; }
+.markdown-preview th, .markdown-preview td { padding: 6px 13px; border: 1px solid var(--wb-code-border); }
+.markdown-preview th { font-weight: 600; background: var(--wb-code-chrome); }
+.markdown-preview img { max-width: 100%; border-radius: var(--wb-radius-xs); }
+
 /* Send to agent: a pill beside selected code, and the list of sessions it opens. */
 .code-editor-frame { position: relative; display: flex; flex: 1; min-width: 0; min-height: 0; }
 .code-editor-frame .code-editor { flex: 1; min-width: 0; }

@@ -55,10 +55,12 @@ import { PtyManager } from "./pty-manager";
 import type { ResourceMonitor } from "./resource-monitor";
 import type { SourceControlService } from "./source-control/source-control-provider";
 import type { WorkspaceFiles, WorkspaceRoots } from "./workspace-files";
+import type { FilePreviews } from "./file-previews";
 
 export interface WorkspaceServices {
   roots: WorkspaceRoots;
   files: WorkspaceFiles;
+  previews: FilePreviews;
   sourceControl: SourceControlService;
   commitMessages: CommitMessages;
 }
@@ -297,6 +299,10 @@ export function registerIpc(ptyManager: PtyManager, agentSessionManager: AgentSe
   handle(IPC.filesImage, (_event, input: unknown) => {
     const { root, path } = fileLocationSchema.parse(input);
     return workspace.files.image(root, path);
+  });
+  handle(IPC.filesPreviewUrl, (_event, input: unknown) => {
+    const { root, path } = fileLocationSchema.parse(input);
+    return workspace.previews.urlFor(root, path);
   });
   handle(IPC.filesExists, (_event, input: unknown) => {
     const { root, paths } = fileExistsSchema.parse(input);

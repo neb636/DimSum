@@ -61,6 +61,8 @@
   --wb-border-subtle: #0000000f;
   --wb-border-strong: #00000026;
   --wb-highlight: #ffffff;
+  /* A previewed web page's canvas, white in both themes as in a browser: pages that set no background expect it. */
+  --wb-page-bg: #ffffff;
 
   /* Text */
   --wb-text-primary: #1d1d1f;

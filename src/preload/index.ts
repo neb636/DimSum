@@ -91,6 +91,7 @@ const api: WorkbenchApi = {
     write: (root, path, content, expectedHash) => ipcRenderer.invoke(IPC.filesWrite, { root, path, content, expectedHash }),
     search: (root, query, options) => ipcRenderer.invoke(IPC.filesSearch, { root, query, ...options }),
     image: (root, path) => ipcRenderer.invoke(IPC.filesImage, { root, path }),
+    previewUrl: (root, path) => ipcRenderer.invoke(IPC.filesPreviewUrl, { root, path }),
     exists: (root, paths) => ipcRenderer.invoke(IPC.filesExists, { root, paths }),
     create: (root, path, kind) => ipcRenderer.invoke(IPC.filesCreate, { root, path, kind }),
     rename: (root, from, to) => ipcRenderer.invoke(IPC.filesRename, { root, from, to }),
