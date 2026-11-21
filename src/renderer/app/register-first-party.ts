@@ -16,7 +16,7 @@ import { clearComposerRuntime, registerComposerContributions } from "../features
 import { registerSendSelection } from "../features/agent/send-selection";
 import { agentIdleStatus, publishAgentStatuses } from "../features/agent/session-status";
 import { agentCloseConfirmation } from "../features/agent/close-confirmation";
-import { confirmDestructive } from "../ui/confirm";
+import { confirmDestructive, confirmDestructiveWithOption } from "../ui/confirm";
 import { workspaceRemoveConfirmation } from "../features/views/workspace-confirmation";
 import { personaMenu } from "../features/personas/persona-menu";
 import { instructionsMenu } from "../features/instructions/instructions-menu";
@@ -215,9 +215,21 @@ const workbench = defineExtension({
     });
     /** `confirmed`: the person already agreed to lose this view (removing its workspace), so its own question is skipped. */
     ctx.commands.register<{ workspaceId: string; viewId: string; confirmed?: boolean }>("view.close", async ({ workspaceId, viewId, confirmed }) => {
-      const view = useWorkbenchStore.getState().workspaces.find((item) => item.id === workspaceId)?.views.find((item) => item.id === viewId);
+      const workspace = useWorkbenchStore.getState().workspaces.find((item) => item.id === workspaceId);
+      const view = workspace?.views.find((item) => item.id === viewId);
       const confirmation = !confirmed && view ? services.views.of(view)?.confirmClose?.(view) : undefined;
-      if (confirmation && !await confirmDestructive(confirmation)) return false;
+      // The last tab of a worktree: the question also offers to close the worktree, which would be left empty.
+      const last = workspace?.parentId && workspace.views.length === 1 ? workspace : undefined;
+      let closeWorktree = false;
+      if (confirmation && last) {
+        const answer = await confirmDestructiveWithOption(confirmation, {
+          label: `Also close the worktree ${last.name}`,
+          detail: "Takes it out of the sidebar. Its folder and branch stay on disk.",
+          selected: closeEmptiedWorktree,
+        });
+        if (answer === undefined) return false;
+        closeWorktree = closeEmptiedWorktree = answer;
+      } else if (confirmation && !await confirmDestructive(confirmation)) return false;
       if (isViewDirty(viewId) && !window.confirm(`${view?.title ?? "This tab"} has unsaved changes. Close it and lose them?`)) return false;
       setViewDirty(viewId, false);
       fileBuffers.delete(viewId);
@@ -225,10 +237,16 @@ const workbench = defineExtension({
       closeTerminalRuntime(viewId);
       clearComposerRuntime(viewId);
       useWorkbenchStore.getState().closeView(workspaceId, viewId);
+      if (closeWorktree && useWorkbenchStore.getState().workspaces.find((item) => item.id === workspaceId)?.views.length === 0) {
+        useWorkbenchStore.getState().removeWorkspace(workspaceId);
+      }
       return true;
     });
   },
 });
+
+/** Whether closing a worktree's last tab also closes the worktree; the last answer, kept while the app runs. */
+let closeEmptiedWorktree = true;
 
 /** Built-in send guards: the limits every prompt is held to, expressed the same way an extension adds its own. */
 const sendGuards = defineExtension({

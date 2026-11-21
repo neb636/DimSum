@@ -15,7 +15,9 @@ import { assertQaWindowVisibility, qaEnvironment } from "./qa-environment.mjs";
 // - Local keeps its own tabs; an agent launched in a New worktree moves into that worktree's row and runs there;
 // - Close Worktree keeps the folder, and Existing worktrees reopens one, including one outside `<repo>-worktrees/`;
 // - a worktree reads its repository's personal (.local) settings;
-// - all of it survives a restart.
+// - all of it survives a restart;
+// - a repository with no worktrees in the sidebar lists its sessions directly, without a Local row;
+// - closing a worktree's last session offers to close the worktree too, keeping its folder.
 const directory = await realpath(await mkdtemp(join(tmpdir(), "workbench-worktrees-qa-")));
 const repo = join(directory, "repo");
 const container = `${repo}-worktrees`;
@@ -51,6 +53,9 @@ await mkdir(join(directory, "elsewhere", ".dimsum"));
 await writeFile(join(directory, "elsewhere", ".dimsum", "settings.local.json"), JSON.stringify({ version: 1, extensions: { disabled: ["workspace:qa-off"] } }));
 await mkdir(join(repo, ".dimsum"));
 await writeFile(join(repo, ".dimsum", "instructions.local.json"), JSON.stringify({ version: 1, instructions: [] }));
+// A second repository with no worktrees and one session.
+const solo = join(directory, "solo");
+execFileSync("git", ["init", "--quiet", "-b", "main", solo]);
 await writeFile(executable, `#!/bin/sh\nexec ${shellQuote(process.execPath)} ${shellQuote(resolve("scripts/fixtures/composer-cli.mjs"))} "$@"\n`, { mode: 0o755 });
 const codex = { providerId: "codex.cli", modelSettings: { "codex.cli": { model: "gpt-6-luna", effort: "low" } } };
 await writeFile(join(directory, "workbench-state.json"), JSON.stringify({
@@ -64,6 +69,9 @@ await writeFile(join(directory, "workbench-state.json"), JSON.stringify({
     ] },
     { id: "standalone", name: "elsewhere", path: join(directory, "elsewhere"), activeViewId: "standalone-terminal", views: [
       { id: "standalone-terminal", workspaceId: "standalone", type: "terminal", title: "Elsewhere shell", state: { providerId: "terminal.local" } },
+    ] },
+    { id: "solo", name: "solo", path: solo, activeViewId: "solo-session", views: [
+      { id: "solo-session", workspaceId: "solo", type: "agent", title: "Solo session", state: { ...codex } },
     ] },
   ],
   activeWorkspaceId: "qa", personas: [{ id: "old-persona", name: "Old persona", description: "", instructions: "Be brief.", scope: "workspace", workspaceId: "old" }],
@@ -96,6 +104,11 @@ const tree = () => page.getByRole("treegrid", { name: "Workspaces" });
 // The repository's rows come first; "elsewhere", open on its own at the start, has a Local row of its own until adopted.
 const row = (name) => tree().getByRole("row", { name, exact: true }).first();
 const level = (name) => row(name).getAttribute("aria-level");
+const newWorktree = async () => {
+  // The + shows on hover, like the tree's other row actions.
+  await row("repo").hover();
+  await row("repo").getByRole("button", { name: "New worktree" }).click();
+};
 const tab = (name) => page.getByRole("tab", { name, exact: true });
 const tabNames = () => page.getByRole("tablist", { name: "Open views" }).getByRole("tab").evaluateAll((tabs) => tabs.map((item) => item.getAttribute("aria-label")));
 const savedState = async () => JSON.parse(await readFile(join(directory, "workbench-state.json"), "utf8"));
@@ -117,10 +130,13 @@ try {
   // What it kept for itself now belongs to the repository, whose settings its worktrees share.
   const personal = JSON.parse(await readFile(join(repo, ".dimsum", "instructions.local.json"), "utf8"));
   assert.deepEqual(personal.instructions.map((item) => item.id), ["old-personal"]);
+  // A repository without worktrees lists its sessions directly.
+  assert.equal(await level("solo"), "1");
+  assert.equal(await level("Solo session"), "2");
   await shot("1-migrated");
 
   // + on the repository row: a worktree opened with a terminal, which runs in the worktree.
-  await row("repo").getByRole("button", { name: "New worktree" }).click();
+  await newWorktree();
   const dialog = page.getByRole("dialog", { name: /New worktree/ });
   await dialog.waitFor();
   const branch = dialog.getByRole("textbox", { name: "Branch" });
@@ -186,10 +202,10 @@ try {
   await confirm.getByRole("button", { name: "Yes, Close Worktree" }).click();
   await row("qa/terminal").waitFor({ state: "detached" });
   assert(existsSync(terminalFolder), "closing keeps the folder");
-  await row("repo").getByRole("button", { name: "New worktree" }).click();
+  await newWorktree();
   await dialog.getByRole("button", { name: "Open qa/terminal" }).click();
   await row("qa/terminal").waitFor();
-  await row("repo").getByRole("button", { name: "New worktree" }).click();
+  await newWorktree();
   // Open on its own until now: it moves under the repository with its tabs, and its personal settings join the repository's.
   assert.equal(await level("elsewhere"), "1");
   await dialog.getByRole("button", { name: "Open elsewhere" }).click();
@@ -232,6 +248,21 @@ try {
   const resumed = JSON.parse((await readFile(launches, "utf8")).trim().split("\n").at(-1));
   assert.deepEqual(resumed.argv.slice(0, 2), ["resume", "--last"]);
   assert.equal(resumed.cwd, sessionFolder);
+
+  // Closing the worktree's last session offers to close the worktree too; its folder stays.
+  await row("Say hello").click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Close", exact: true }).click();
+  const closing = page.getByRole("alertdialog");
+  const alsoClose = closing.getByRole("checkbox", { name: new RegExp(`Also close the worktree ${sessionBranch}`) });
+  await alsoClose.waitFor({ state: "attached" });
+  assert.equal(await alsoClose.isChecked(), true);
+  await shot("8-close-last-session");
+  await closing.getByRole("button", { name: "Yes, Close Session" }).click();
+  await row(sessionBranch).waitFor({ state: "detached" });
+  assert(existsSync(sessionFolder), "closing the worktree keeps its folder");
+  // Back on another worktree, for a look at the tidied sidebar.
+  await row("elsewhere").click();
+  await shot("9-after-close");
   assert.deepEqual(errors, []);
   console.log("QA passed", shots);
 } finally {

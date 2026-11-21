@@ -90,12 +90,17 @@ try {
   const list = manager.getByRole("grid");
   const item = (name) => list.getByRole("row", { name, exact: true });
   const confirm = page.getByRole("alertdialog");
+  // The + shows on hover, like the tree's other row actions.
+  const newWorktree = async () => {
+    await row("repo").hover();
+    await row("repo").getByRole("button", { name: "New worktree" }).click();
+  };
 
   // The + shows once the folder is known to support worktrees, as does the menu item.
-  await row("repo").getByRole("button", { name: "New worktree" }).waitFor();
+  await row("repo").getByRole("button", { name: "New worktree" }).waitFor({ state: "attached" });
 
   // The New worktree dialog lists the closed ones newest first, by conversation title with the branch beneath.
-  await row("repo").getByRole("button", { name: "New worktree" }).click();
+  await newWorktree();
   const existing = page.getByRole("dialog", { name: /New worktree/ }).locator(".worktree-existing li");
   await existing.first().getByText(FRESH).waitFor();
   assert.equal(await existing.count(), 4);
@@ -171,7 +176,7 @@ try {
   await manager.waitFor({ state: "detached" });
 
   // From the New worktree dialog.
-  await row("repo").getByRole("button", { name: "New worktree" }).click();
+  await newWorktree();
   const create = page.getByRole("dialog", { name: /New worktree/ });
   await create.getByRole("button", { name: "Manage worktrees…" }).click();
   await create.waitFor({ state: "detached" });

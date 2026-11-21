@@ -284,6 +284,10 @@ svg { flex: none; }
   direction: rtl;
   text-align: left;
 }
+.wb-checkbox.confirm-option { align-items: flex-start; padding: 0 var(--wb-space-1); cursor: default; }
+.confirm-option .checkbox-box { margin-top: 1px; }
+.confirm-option-copy { display: grid; gap: 1px; }
+.confirm-option-copy small { color: var(--wb-text-secondary); font-size: var(--wb-font-size-sm); }
 .confirm-actions { margin-top: var(--wb-space-1); }
 .confirm-cancel { min-width: 76px; }
 .danger-button {

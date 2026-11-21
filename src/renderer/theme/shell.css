@@ -57,35 +57,50 @@
 .workspace-tree { flex: 1; min-height: 0; overflow: auto; padding: var(--wb-space-1) var(--wb-space-2) var(--wb-space-2); outline: none; }
 .workspace-tree [role="row"] { outline: none; }
 .workspace-row:not(:first-child) { margin-top: var(--wb-space-1); }
+/* Every row is one line. Each level is indented by one chevron and gap, so a row's icon sits under its parent's chevron... */
 .workspace-row-content, .checkout-row-content, .session-row-content {
+  --wb-tree-indent: 0px;
   display: flex;
   align-items: center;
-  gap: var(--wb-space-2);
-  min-height: 36px;
-  padding: var(--wb-space-1) var(--wb-space-1) var(--wb-space-1) 2px;
+  gap: 6px;
+  min-height: 30px;
+  margin-left: var(--wb-tree-indent);
+  padding: 0 var(--wb-space-1) 0 2px;
   border-radius: var(--wb-radius-sm);
   transition: background-color 100ms;
 }
+.workspace-row-content { min-height: 32px; }
+.workspace-tree [aria-level="2"] > * > :is(.checkout-row-content, .session-row-content) { --wb-tree-indent: 22px; }
+.workspace-tree [aria-level="3"] > * > .session-row-content { --wb-tree-indent: 44px; }
 .workspace-row[data-hovered] .workspace-row-content, .checkout-row[data-hovered] .checkout-row-content, .session-row[data-hovered] .session-row-content { background: var(--wb-bg-hover); }
 .workspace-row[data-focus-visible] .workspace-row-content, .session-row[data-focus-visible] .session-row-content, .checkout-row[data-focus-visible] .checkout-row-content { box-shadow: inset 0 0 0 2px var(--wb-focus-ring); }
 .workspace-icon {
   display: grid;
   place-items: center;
   flex: none;
-  width: 26px;
-  height: 26px;
-  border-radius: var(--wb-radius-sm);
+  width: 22px;
+  height: 22px;
+  border-radius: var(--wb-radius-xs);
   background: var(--wb-bg-field);
   color: var(--wb-text-secondary);
   box-shadow: var(--wb-shadow-inset);
 }
 .workspace-icon img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
 .workspace-row.is-active .workspace-icon { background: var(--wb-accent-soft); color: var(--wb-accent); box-shadow: none; }
-.workspace-copy { display: grid; flex: 1; min-width: 0; gap: 0; }
-.workspace-copy strong, .session-title { overflow: hidden; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
-.workspace-row.is-active .workspace-copy strong { font-weight: 600; }
-.workspace-copy small, .session-copy small { overflow: hidden; color: var(--wb-text-secondary); font-size: var(--wb-font-size-xs); line-height: 15px; text-overflow: ellipsis; white-space: nowrap; }
-.workspace-branch::before { content: " · "; }
+/* ...and a session's status dot sits under its parent's icon, its title under its parent's name. */
+.tree-icon { display: grid; place-items: center; flex: none; width: 22px; height: 22px; color: var(--wb-text-secondary); }
+.tree-label { display: flex; flex: 1; align-items: baseline; gap: var(--wb-space-1-5); min-width: 0; }
+.tree-label strong, .session-title { overflow: hidden; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.tree-label strong { flex: 0 1 auto; min-width: 0; }
+.tree-label small { flex: 0 1000 auto; min-width: 0; overflow: hidden; color: var(--wb-text-muted); font-size: var(--wb-font-size-xs); text-overflow: ellipsis; white-space: nowrap; }
+.tree-label small:empty { display: none; }
+.workspace-row.is-active .tree-label strong, .checkout-row.is-active .tree-label strong { font-weight: 600; }
+.session-title { flex: 1; min-width: 0; }
+.session-status { flex: none; max-width: 40%; overflow: hidden; color: var(--wb-text-muted); font-size: var(--wb-font-size-xs); text-overflow: ellipsis; white-space: nowrap; }
+.session-row .tone-working + .session-title + .session-status, .session-row .tone-attention + .session-title + .session-status { color: var(--wb-text-secondary); }
+/* A collapsed row's count of the sessions it hides. */
+.tree-hidden { display: inline-flex; flex: none; align-items: center; gap: var(--wb-space-1); color: var(--wb-text-muted); font-size: var(--wb-font-size-xs); font-variant-numeric: tabular-nums; }
+.tree-hidden .status-dot { width: 6px; height: 6px; box-shadow: 0 0 0 2px var(--wb-accent-soft); }
 .tree-chevron {
   display: grid;
   place-items: center;
@@ -120,19 +135,12 @@
 }
 [role="row"][data-hovered] .row-action, [role="row"][data-focus-visible] .row-action, [role="row"]:focus-within .row-action, .row-action[aria-expanded="true"] { opacity: 1; }
 .row-action[data-hovered], .row-action[aria-expanded="true"] { background: var(--wb-bg-selected); color: var(--wb-text-primary); }
-.session-row-content { min-height: 36px; margin-left: 24px; padding-left: var(--wb-space-2); }
 .session-row.is-current .session-row-content, .session-row.is-current[data-hovered] .session-row-content { background: var(--wb-bg-selected); }
-/* A repository's checkouts: Local and each worktree, one level in, each with its sessions below it. */
-.checkout-row-content { min-height: 32px; margin-left: var(--wb-space-4); }
-.checkout-row .workspace-copy strong { font-weight: 500; }
-.checkout-row.is-active .workspace-copy strong { font-weight: 600; }
-.checkout-icon { display: grid; place-items: center; flex: none; width: 20px; height: 20px; border-radius: var(--wb-radius-xs); color: var(--wb-text-secondary); }
-.checkout-row.is-active .checkout-icon { color: var(--wb-accent); }
-.session-row[aria-level="3"] .session-row-content { margin-left: 40px; }
-.workspace-add-worktree { width: var(--wb-control-sm); height: var(--wb-control-sm); border-radius: var(--wb-radius-xs); color: var(--wb-text-muted); }
-.workspace-add-worktree[data-hovered] { background: var(--wb-bg-selected); color: var(--wb-text-primary); }
+.checkout-row.is-active .tree-icon { color: var(--wb-accent); }
+/* The tree's hover actions take no width until their row is hovered or focused; they stay in the accessibility tree. */
+.workspace-tree .row-action:not([aria-expanded="true"]) { width: 0; margin: 0; overflow: hidden; }
+.workspace-tree [role="row"][data-hovered] .row-action, .workspace-tree [role="row"][data-focus-visible] .row-action, .workspace-tree [role="row"]:focus-within .row-action { width: var(--wb-control-sm); }
 
-.session-copy { display: grid; flex: 1; min-width: 0; gap: 0; }
 .sidebar-empty { padding: var(--wb-space-2) var(--wb-space-4); color: var(--wb-text-secondary); line-height: 18px; }
 .sidebar-footer { display: grid; flex: none; gap: 2px; padding: var(--wb-space-2); border-top: 1px solid var(--wb-border-subtle); }
 .sidebar-nav-item {
@@ -450,15 +458,13 @@
 /* Narrow sidebars: keep names readable by dropping counts and tightening the tree's indents. */
 .left-sidebar, .right-sidebar { container-type: inline-size; }
 @container (max-width: 230px) {
-  .workspace-tree .count-badge { position: absolute; width: 1px; height: 1px; min-width: 0; padding: 0; overflow: hidden; clip: rect(0 0 0 0); }
-  .checkout-row-content { margin-left: var(--wb-space-2); }
-  .session-row-content { margin-left: var(--wb-space-3); }
-  .session-row[aria-level="3"] .session-row-content { margin-left: 20px; }
+  .workspace-tree [aria-level="2"] > * > :is(.checkout-row-content, .session-row-content) { --wb-tree-indent: 12px; }
+  .workspace-tree [aria-level="3"] > * > .session-row-content { --wb-tree-indent: 24px; }
+  .session-status, .tree-label small { display: none; }
   .side-panel-header .wb-icon-button { width: 22px; height: 22px; }
   .workspace-tree .workspace-icon { display: none; }
   .panel-list-item small { display: none; }
   /* Hover actions take no width until their row is hovered or focused; they stay in the accessibility tree. */
-  [role="row"] .row-action:not([aria-expanded="true"]), .workspace-tree .workspace-add-worktree { width: 0; margin: 0; overflow: hidden; }
-  [role="row"][data-hovered] .row-action, [role="row"][data-focus-visible] .row-action, [role="row"]:focus-within .row-action,
-  .workspace-tree [role="row"][data-hovered] .workspace-add-worktree, .workspace-tree [role="row"]:focus-within .workspace-add-worktree { width: var(--wb-control-sm); }
+  [role="row"] .row-action:not([aria-expanded="true"]) { width: 0; margin: 0; overflow: hidden; }
+  [role="row"][data-hovered] .row-action, [role="row"][data-focus-visible] .row-action, [role="row"]:focus-within .row-action { width: var(--wb-control-sm); }
 }

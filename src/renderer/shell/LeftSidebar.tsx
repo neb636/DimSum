@@ -16,7 +16,7 @@ import { useWorktreeSupport } from "../features/worktrees/worktrees";
 type ViewStatuses = Record<string, ViewStatus>;
 type ContextMenuController = ReturnType<typeof useContextMenu>;
 
-/** A repository's own checkout has a row of its own, beside its worktrees; this is that row's key. */
+/** A repository with worktrees lists its own checkout as Local, beside them; this is that row's key. */
 const LOCAL = "local:";
 
 function sidebarViews(workspace: Workspace) {
@@ -38,18 +38,30 @@ function Chevron({ isExpanded, hasChildItems, name }: { isExpanded: boolean; has
     : <span className="tree-chevron-spacer" />;
 }
 
+/**
+ * What a collapsed row hides: how many sessions, marked when one of them has news the person hasn't seen. An expanded
+ * row shows its sessions, so it says nothing.
+ */
+function Hidden({ sessions, statuses }: { sessions: WorkbenchView[]; statuses: ViewStatuses }) {
+  if (!sessions.length) return null;
+  const unseen = sessions.some((view) => viewStatus(view, statuses)?.unseen);
+  return <span className={`tree-hidden ${unseen ? "is-unseen" : ""}`} aria-label={`${plural(sessions.length, "session")}${unseen ? ", with updates" : ""}`}>
+    {unseen && <span className="status-dot is-unseen" aria-hidden="true" />}{sessions.length}
+  </span>;
+}
+
+/** One line per session: its status dot, title and status; the status's detail is in the tooltip. */
 function SessionRows({ workspace, isCurrent, statuses, menu }: { workspace: Workspace; isCurrent: boolean; statuses: ViewStatuses; menu: ContextMenuController }) {
   return sidebarViews(workspace).map((view: WorkbenchView) => {
     const status = viewStatus(view, statuses);
+    const summary = [status?.label, status?.detail].filter(Boolean).join(" · ");
     return <TreeItem key={view.id} id={view.id} textValue={view.title}
       className={`session-row ${isCurrent && workspace.activeViewId === view.id ? "is-current" : ""}`} {...menu.bind(() => viewActions(workspace, view))}>
       <TreeItemContent>
-        <div className="session-row-content">
-          <span className={`status-dot tone-${status?.tone ?? "idle"} ${status?.unseen ? "is-unseen" : ""}`} aria-hidden="true" />
-          <span className="session-copy">
-            <span className="session-title">{view.title}</span>
-            <small>{[status?.label, status?.detail].filter(Boolean).join(" · ")}</small>
-          </span>
+        <div className="session-row-content" title={summary ? `${view.title}\n${summary}` : view.title}>
+          <span className="tree-icon"><span className={`status-dot tone-${status?.tone ?? "idle"} ${status?.unseen ? "is-unseen" : ""}`} aria-hidden="true" /></span>
+          <span className="session-title">{view.title}</span>
+          {status?.label && <small className="session-status">{status.label}</small>}
           {menu.overflow(viewActions(workspace, view), view.title)}
         </div>
       </TreeItemContent>
@@ -57,21 +69,22 @@ function SessionRows({ workspace, isCurrent, statuses, menu }: { workspace: Work
   });
 }
 
-/** Local or one worktree: its own tabs, listed with its sessions under it. */
+/** Local or one worktree, with its sessions under it. */
 function CheckoutRow({ workspace, isLocal, isActive, statuses, menu }: { workspace: Workspace; isLocal: boolean; isActive: boolean; statuses: ViewStatuses; menu: ContextMenuController }) {
   const sessions = sidebarViews(workspace);
   const label = isLocal ? "Local" : workspace.name;
   return <TreeItem id={isLocal ? `${LOCAL}${workspace.id}` : workspace.id} textValue={label} hasChildItems={sessions.length > 0}
     className={`checkout-row ${isActive ? "is-active" : ""}`} {...menu.bind(() => workspaceActions(workspace))}>
     <TreeItemContent>
-      {({ isExpanded, hasChildItems }) => <div className="checkout-row-content">
+      {({ isExpanded, hasChildItems }) => <div className="checkout-row-content" title={workspace.path}>
         <Chevron isExpanded={isExpanded} hasChildItems={hasChildItems} name={label} />
-        <span className="checkout-icon">{isLocal ? <FolderIcon size={13} /> : <BranchIcon size={13} />}</span>
-        <span className="workspace-copy">
-          <strong title={isLocal ? workspace.path : `${workspace.name} · ${workspace.path}`}>{label}</strong>
-          <small>{plural(sessions.length, "session")}<WorkspaceMeta workspace={workspace} /></small>
+        <span className="tree-icon">{isLocal ? <FolderIcon size={13} /> : <BranchIcon size={13} />}</span>
+        <span className="tree-label">
+          <strong>{label}</strong>
+          {/* Local's branch; a worktree is named after its own. */}
+          {isLocal && <small><WorkspaceMeta workspace={workspace} /></small>}
         </span>
-        {workspace.views.length > 0 && <span className="count-badge" aria-label={plural(workspace.views.length, "open view")}>{workspace.views.length}</span>}
+        {!isExpanded && <Hidden sessions={sessions} statuses={statuses} />}
         {menu.overflow(workspaceActions(workspace), label)}
       </div>}
     </TreeItemContent>
@@ -79,6 +92,10 @@ function CheckoutRow({ workspace, isLocal, isActive, statuses, menu }: { workspa
   </TreeItem>;
 }
 
+/**
+ * A workspace folder. Once a repository has worktrees in the sidebar, it lists Local (its own folder) beside them, each
+ * with its sessions; until then, like any other folder, it lists its sessions directly.
+ */
 function WorkspaceRow({ workspace, worktrees, activeWorkspaceId, statuses, menu }: {
   workspace: Workspace;
   worktrees: Workspace[];
@@ -86,30 +103,25 @@ function WorkspaceRow({ workspace, worktrees, activeWorkspaceId, statuses, menu 
   statuses: ViewStatuses;
   menu: ContextMenuController;
 }) {
-  const supported = useWorktreeSupport(workspace);
-  // A repository lists its own checkout as Local beside its worktrees; any other folder lists its sessions directly.
-  const grouped = !isFilesWorkspace(workspace) && (supported || worktrees.length > 0);
+  const files = isFilesWorkspace(workspace);
+  const canBranch = useWorktreeSupport(workspace) && !files;
+  const grouped = !files && worktrees.length > 0;
   const checkouts = [workspace, ...worktrees];
-  const sessions = grouped ? checkouts.reduce((count, item) => count + sidebarViews(item).length, 0) : sidebarViews(workspace).length;
+  const sessions = checkouts.flatMap(sidebarViews);
   const isActive = checkouts.some((item) => item.id === activeWorkspaceId);
-  const opened = workspace.views.length + worktrees.reduce((count, item) => count + item.views.length, 0);
-  return <TreeItem id={workspace.id} textValue={workspace.name} hasChildItems={grouped || sidebarViews(workspace).length > 0}
+  return <TreeItem id={workspace.id} textValue={workspace.name} hasChildItems={grouped || sessions.length > 0}
     className={`workspace-row ${isActive ? "is-active" : ""}`} {...menu.bind(() => workspaceActions(workspace))}>
     <TreeItemContent>
-      {({ isExpanded, hasChildItems }) => <div className="workspace-row-content">
+      {({ isExpanded, hasChildItems }) => <div className="workspace-row-content" title={files ? "Files opened on their own" : workspace.path}>
         <Chevron isExpanded={isExpanded} hasChildItems={hasChildItems} name={workspace.name} />
-        <span className="workspace-icon">{workspace.icon ? <img src={workspace.icon} alt="" draggable={false} /> : isFilesWorkspace(workspace) ? <FileIcon size={15} /> : <FolderIcon size={15} />}</span>
-        <span className="workspace-copy">
+        <span className="workspace-icon">{workspace.icon ? <img src={workspace.icon} alt="" draggable={false} /> : files ? <FileIcon size={14} /> : <FolderIcon size={14} />}</span>
+        <span className="tree-label">
           <strong>{workspace.name}</strong>
-          {isFilesWorkspace(workspace)
-            ? <small>Opened on their own</small>
-            : grouped
-              ? <small>{[worktrees.length ? plural(worktrees.length, "worktree") : "", plural(sessions, "session")].filter(Boolean).join(" · ")}</small>
-              : <small>{plural(sessions, "session")}<WorkspaceMeta workspace={workspace} /></small>}
+          {/* Grouped, the branch is on Local's row. */}
+          {!files && !grouped && <small><WorkspaceMeta workspace={workspace} /></small>}
         </span>
-        {grouped
-          ? <IconButton label="New worktree" className="workspace-add-worktree" onPress={() => void services.commands.execute("worktree.new", { workspaceId: workspace.id })}><PlusIcon size={13} /></IconButton>
-          : <span className="count-badge">{opened}</span>}
+        {!isExpanded && <Hidden sessions={sessions} statuses={statuses} />}
+        {canBranch && <IconButton label="New worktree" className="row-action" onPress={() => void services.commands.execute("worktree.new", { workspaceId: workspace.id })}><PlusIcon size={13} /></IconButton>}
         {menu.overflow(workspaceActions(workspace), workspace.name)}
       </div>}
     </TreeItemContent>
