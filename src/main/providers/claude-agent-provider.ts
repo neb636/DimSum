@@ -1,6 +1,7 @@
 import type { AgentModelListing, AgentProviderAdapter, AgentSubmission, ScreenObservation } from "../agent-provider";
 import { claudeConversationTitles } from "./claude-conversations";
 import { acceptClaudeFolderTrust } from "./claude-config";
+import { claudeLifecycle, mergeClaudeSettings } from "./claude-hooks";
 import { claudeMode, detectCliScreen, pasteChunks } from "./cli-screen";
 import type { AgentModelChoice, AgentModelSettings, AgentPromptRequest, AgentResume } from "../../shared/models";
 
@@ -47,6 +48,8 @@ export class ClaudeAgentProvider implements AgentProviderAdapter {
     args: () => ["-p", "--safe-mode", "--tools", "", "--no-session-persistence"],
     quickTaskModel: { model: "haiku", effort: "medium" },
   };
+  readonly lifecycle = claudeLifecycle;
+  mergeArgs = mergeClaudeSettings;
   detect = detectCliScreen("claude");
   readonly capabilities = { planning: true };
   // Shift+Tab cycles the modes (default → accept edits → plan → ...). `/plan` plus a paste can lose what follows.

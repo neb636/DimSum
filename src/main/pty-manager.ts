@@ -39,9 +39,9 @@ function appEnvironment(): Record<string, string> {
   return { DIMSUM_HOME: dimsumHome(), ...(guide ? { DIMSUM_GUIDE: guide } : {}) };
 }
 
-export function spawnTerminal(command: string, args: string[], cwd: string, cols: number, rows: number): IPty {
+export function spawnTerminal(command: string, args: string[], cwd: string, cols: number, rows: number, env: Record<string, string> = {}): IPty {
   return pty.spawn(command, args, { name: "xterm-256color", cwd, cols, rows,
-    env: { ...process.env, ...appEnvironment(), TERM: "xterm-256color", COLORTERM: "truecolor" } });
+    env: { ...process.env, ...appEnvironment(), ...env, TERM: "xterm-256color", COLORTERM: "truecolor" } });
 }
 
 export class PtyManager {

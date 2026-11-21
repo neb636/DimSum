@@ -6,7 +6,8 @@ import { SerializeAddon } from "@xterm/addon-serialize";
 import type { IDisposable, IPty } from "node-pty";
 import type { AgentDeliveryResult, AgentPromptRequest, AgentProviderInfo, AgentSessionCreateOptions, AgentSessionEvent, AgentSessionSnapshot, AgentSessionStatus } from "../shared/models";
 import { IPC } from "../shared/ipc";
-import type { AgentProviderAdapter, ScreenObservation } from "./agent-provider";
+import type { AgentDetection, AgentProviderAdapter, ScreenObservation } from "./agent-provider";
+import type { AgentLifecycleChannel, LifecycleEndpoint } from "./agent-lifecycle-channel";
 import { AgentModelCatalogue } from "./agent-model-catalogue";
 import { executablePath } from "./executables";
 import { spawnTerminal, type ListedSession } from "./pty-manager";
@@ -51,6 +52,16 @@ interface Session {
   dataTimer?: ReturnType<typeof setTimeout>;
   detectTimer?: ReturnType<typeof setTimeout>;
   listeners: IDisposable[];
+  /** Where the CLI reports its own lifecycle, when its adapter has one and the channel could open. */
+  lifecycle?: LifecycleEndpoint;
+  /**
+   * What the CLI last reported through that channel. Unset until the first message, and again after an interrupt
+   * (no message follows one) or after the person answers a question in the terminal: the screen decides meanwhile.
+   */
+  reported?: { activity: "ready" | "working" | "waiting-for-input"; detail?: string };
+  /** Prompts the CLI reported taking, and how many it had when the last Enter went. */
+  submitted: number;
+  submittedAtEnter: number;
 }
 
 // A CLI's spinner alone writes about ten chunks a second. Sending each one to the window, and reading the whole
@@ -89,6 +100,7 @@ export class AgentSessionManager {
     private readonly launchArgs: LaunchArgsContributor[] = [],
     /** True when the person trusts this folder in DimSum; the CLI is then told to trust it too. */
     private readonly folderTrusted: (cwd: string) => boolean = () => false,
+    private readonly lifecycleChannel?: Pick<AgentLifecycleChannel, "open">,
   ) {}
 
   discover(): AgentProviderInfo[] {
@@ -127,18 +139,25 @@ export class AgentSessionManager {
     }
     if (provider.trustFolder && this.folderTrusted(options.workspacePath)) args.push(...provider.trustFolder(options.workspacePath));
     for (const contribute of this.launchArgs) args.push(...contribute(provider.id, options.workspacePath));
+    // Messages can only come once the CLI runs, by which time the session exists.
+    const target: { session?: Session } = {};
+    const lifecycle = provider.lifecycle ? this.lifecycleChannel?.open((message) => { if (target.session) this.report(target.session, message); }) : undefined;
+    if (lifecycle) args.push(...provider.lifecycle!.args(lifecycle.forward));
+    const launch = provider.mergeArgs ? provider.mergeArgs(args) : args;
     const terminal = new Terminal({ cols: options.cols, rows: options.rows, scrollback: 2000, allowProposedApi: true });
     const serialize = new SerializeAddon();
     terminal.loadAddon(serialize);
     let processInstance: IPty;
-    try { processInstance = this.spawn(executable, args, options.workspacePath, options.cols, options.rows); }
-    catch (error) { terminal.dispose(); throw error; }
+    try { processInstance = this.spawn(executable, launch, options.workspacePath, options.cols, options.rows, lifecycle?.env); }
+    catch (error) { terminal.dispose(); lifecycle?.close(); throw error; }
     const session: Session = {
       id: randomUUID(), viewId: options.viewId, cwd: options.workspacePath, owner, listeners: [], provider, process: processInstance, terminal, serialize,
       sequence: 0, interrupted: false, working: false, sending: false, disposed: false, inputWasEdited: false, unconfirmedEnter: false,
       lastOutputAt: Date.now(), settled: false, pendingData: "", createdAt: Date.now(), resized: false, title: "", conversationId,
       status: { lifecycle: "starting", activity: "unknown", canSubmit: false, inputState: "unavailable", reason: "Starting CLI…", rule: "startup", observedAt: Date.now(), completed: 0, started: 0, confirmedDeliveries: 0 },
+      lifecycle, submitted: 0, submittedAtEnter: 0,
     };
+    target.session = session;
     this.sessions.set(session.id, session);
     const reported = provider.reportedState;
     if (reported) terminal.parser.registerOscHandler(reported.osc, (data) => {
@@ -167,6 +186,7 @@ export class AgentSessionManager {
     }), processInstance.onExit(({ exitCode }) => {
       if (session.disposed) return;
       this.emitPending(session);
+      session.lifecycle?.close();
       session.status = { ...session.status, lifecycle: exitCode === 0 ? "exited" : "failed", activity: "unknown", canSubmit: false, inputState: "unavailable",
         reason: `CLI exited with code ${exitCode}.`, rule: "process.exit", observedAt: Date.now(), exitCode };
       this.emit(session, { type: "status", status: session.status });
@@ -225,6 +245,7 @@ export class AgentSessionManager {
         throw new Error("Prompt may be pasted. Inspect the terminal before sending again.");
       }
       stage = "enter";
+      s.submittedAtEnter = s.submitted;
       s.process.write("\r");
       s.inputWasEdited = false;
       s.interrupted = false;
@@ -236,7 +257,8 @@ export class AgentSessionManager {
         await sleep(50);
         await this.flush(s);
         current = this.sessions.get(id)?.status;
-        if (current?.lifecycle === "alive" && current.activity !== "waiting-for-input" && current.inputState === "empty") {
+        // The CLI saying it took the prompt is enough; otherwise its input editor emptying is.
+        if (current?.lifecycle === "alive" && current.activity !== "waiting-for-input" && (current.inputState === "empty" || s.submitted > s.submittedAtEnter)) {
           return { outcome: "submitted", stage, message: plan ? "Planning request handed to the CLI in its Plan mode."
             : current.queuedPrompt ? "Prompt queued by the CLI until it can take it." : "Prompt handed to the CLI." };
         }
@@ -254,8 +276,12 @@ export class AgentSessionManager {
   input(id: string, data: string, owner: WebContents): void {
     const s = this.owned(id, owner);
     if (s.sending || s.status.lifecycle === "exited" || s.status.lifecycle === "failed") return;
-    if (!isProtocolInput(data)) s.unconfirmedEnter = false;
-    if (data === "\x1b" || data === "\x03") s.interrupted = true;
+    if (!isProtocolInput(data)) {
+      s.unconfirmedEnter = false;
+      // Answering a question in the terminal sends no message until the next step finishes (a long tool can run first).
+      if (s.reported?.activity === "waiting-for-input") s.reported = undefined;
+    }
+    if (data === "\x1b" || data === "\x03") { s.interrupted = true; s.reported = undefined; }
     // Mouse moves, focus and terminal replies are not typing: counting them made a dim placeholder look like a draft.
     else if (!isProtocolInput(data)) {
       s.inputWasEdited = !data.includes("\r");
@@ -274,6 +300,7 @@ export class AgentSessionManager {
     if (s.sending) return;
     s.interrupted = true;
     s.unconfirmedEnter = false;
+    s.reported = undefined;
     if (s.status.lifecycle === "alive") s.process.write(s.provider.interrupt);
   }
   /** Ends the CLI and everything it started; resolves once they are gone. */
@@ -287,6 +314,7 @@ export class AgentSessionManager {
     this.sessions.delete(id);
     s.listeners.forEach((listener) => listener.dispose());
     s.terminal.dispose();
+    s.lifecycle?.close();
     if (s.status.lifecycle === "exited" || s.status.lifecycle === "failed") return Promise.resolve();
     const ended = endProcessTree(s.process.pid, () => s.process.kill(), graceMs).finally(() => this.ending.delete(ended));
     this.ending.add(ended);
@@ -392,7 +420,7 @@ export class AgentSessionManager {
   }
   private detect(s: Session): void {
     if (s.disposed || s.status.lifecycle === "exited" || s.status.lifecycle === "failed") return;
-    let detection = s.provider.detect(this.observe(s));
+    let detection = this.withReport(s, s.provider.detect(this.observe(s)));
     let lifecycle: AgentSessionStatus["lifecycle"] = "alive";
     if (!s.settled && detection.canSubmit) {
       // The first prompt waits for a quiet, idle CLI at its real size: a paste that lands mid-redraw gets lost.
@@ -422,7 +450,7 @@ export class AgentSessionManager {
       s.working = false;
     }
     let confirmedDeliveries = s.status.confirmedDeliveries;
-    if (s.unconfirmedEnter && !s.sending && lifecycle === "alive" && detection.inputState === "empty") { s.unconfirmedEnter = false; confirmedDeliveries++; }
+    if (s.unconfirmedEnter && !s.sending && lifecycle === "alive" && (detection.inputState === "empty" || s.submitted > s.submittedAtEnter)) { s.unconfirmedEnter = false; confirmedDeliveries++; }
     const next: AgentSessionStatus = { ...detection, lifecycle, completed, started, confirmedDeliveries, observedAt: Date.now() };
     const previous = s.status;
     s.status = next;
@@ -430,6 +458,35 @@ export class AgentSessionManager {
       || previous.completed !== completed || previous.started !== started || previous.confirmedDeliveries !== confirmedDeliveries
       || Boolean(previous.queuedPrompt) !== Boolean(next.queuedPrompt)) this.emit(s, { type: "status", status: next });
   }
+  /** One message from the CLI's lifecycle channel. */
+  private report(s: Session, message: unknown): void {
+    if (s.disposed || s.status.lifecycle === "exited" || s.status.lifecycle === "failed") return;
+    const report = s.provider.lifecycle?.parse(message);
+    if (!report) return;
+    if (report.submitted) s.submitted++;
+    if (report.activity) s.reported = { activity: report.activity, detail: report.detail };
+    this.detect(s);
+  }
+
+  /**
+   * Activity from what the CLI reported, when it has; the screen still gives the input editor's state. A question on
+   * screen wins over a report (trust and plan-approval dialogs, for example, send none).
+   */
+  private withReport(s: Session, screen: AgentDetection): AgentDetection {
+    const reported = s.reported;
+    if (!reported || screen.activity === "waiting-for-input") return screen;
+    const { activity, detail } = reported;
+    const rule = `lifecycle.${activity}`;
+    if (activity === "waiting-for-input") return { ...screen, activity, canSubmit: false, rule, reason: `${detail ? `${detail}. ` : ""}Answer the question in the terminal.` };
+    // The screen agrees, or holds a queued prompt (which means a turn runs): its reasons say more.
+    if (activity === screen.activity || screen.queuedPrompt) return screen;
+    const empty = screen.inputState === "empty";
+    if (screen.inputState === "unavailable") return { ...screen, activity, canSubmit: false, rule };
+    if (activity === "working") return { ...screen, activity, canSubmit: empty, rule,
+      reason: empty ? `${detail ? `${detail}. ` : ""}Submit using the CLI’s native queue or steering.` : "Clear the native draft or use the terminal input." };
+    return { ...screen, activity, canSubmit: empty, rule, reason: empty ? "Ready for a prompt." : "A draft is already in the terminal. Send or clear it there first." };
+  }
+
   private observe(s: Session): ScreenObservation {
     const buffer = s.terminal.buffer.active;
     const lines = Array.from({ length: s.terminal.rows }, (_, i) => buffer.getLine(buffer.baseY + i)?.translateToString(true) ?? "");

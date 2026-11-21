@@ -40,6 +40,27 @@ export interface ConversationTitle {
   at: number;
 }
 
+/**
+ * What a CLI reported about itself through a structured channel (such as Claude Code's hooks). `activity` is absent
+ * for a message that says nothing about it; `submitted` means the CLI took a prompt.
+ */
+export interface LifecycleReport {
+  activity?: "ready" | "working" | "waiting-for-input";
+  submitted?: boolean;
+  /** A few words for the status reason, such as the tool it runs. */
+  detail?: string;
+}
+
+/**
+ * A CLI that can report its own lifecycle. `args` gets a shell command that forwards the JSON on its stdin to this
+ * session's channel and returns the launch arguments that make the CLI run it; `parse` reads one forwarded message.
+ * The screen is still read for the input editor, and stands in when no message ever arrives.
+ */
+export interface AgentLifecycle {
+  args: (forward: string) => string[];
+  parse: (message: unknown) => LifecycleReport | undefined;
+}
+
 /** Executable, native UI and key protocol knowledge belongs to an adapter. */
 export interface AgentProviderAdapter {
   id: string;
@@ -67,6 +88,12 @@ export interface AgentProviderAdapter {
   conversationTitles?: (folder: string) => Promise<ConversationTitle[]>;
   /** Run once without a terminal: prompt on stdin, answer as plain text on stdout. Used only by InternalAiService. */
   oneShot?: { args: () => string[]; quickTaskModel: AgentModelSettings };
+  /**
+   * Combines launch arguments the CLI takes only once (Claude Code applies only the last `--settings`), after every
+   * feature has added its own.
+   */
+  mergeArgs?: (args: string[]) => string[];
+  lifecycle?: AgentLifecycle;
   detect: (screen: ScreenObservation) => AgentDetection;
   capabilities?: { planning: boolean };
   /** Quiet time a first input prompt must hold before it accepts a submission; some CLIs draw it before startup dialogs. */
