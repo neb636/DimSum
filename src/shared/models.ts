@@ -209,6 +209,8 @@ export interface FileViewState {
   /** Showing the changes against `diffBase` instead of plain editing. */
   diff?: boolean;
   diffBase?: DiffBase;
+  /** For HTML and Markdown files: the code (the default) or the rendered page. */
+  display?: "code" | "preview";
   /** Open at this line (from a path in an agent's output); a new nonce jumps again. */
   line?: number;
   lineNonce?: number;
@@ -512,6 +514,8 @@ export interface WorkbenchApi {
     search: (root: string, query: string, options: SearchOptions) => Promise<SearchResult>;
     /** A picture as a data URL (up to 8 MB). */
     image: (root: string, path: string) => Promise<string>;
+    /** Where a workspace file is served as a page (an HTML preview, a Markdown file's pictures and links resolve against it). */
+    previewUrl: (root: string, path: string) => Promise<string>;
     /** Which of these relative paths are files in the root (for clickable paths in terminals). */
     exists: (root: string, paths: string[]) => Promise<string[]>;
     create: (root: string, path: string, kind: "file" | "directory") => Promise<void>;

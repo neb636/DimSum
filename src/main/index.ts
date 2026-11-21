@@ -21,6 +21,7 @@ import { IPC } from "../shared/ipc";
 import type { MenuCommand } from "../shared/models";
 import { SourceControlService } from "./source-control/source-control-provider";
 import { WorkspaceFiles, WorkspaceRoots } from "./workspace-files";
+import { FilePreviews } from "./file-previews";
 import { createAiUsage, registerAiUsage } from "./ai-usage";
 import { registerDimsum } from "./extensions";
 import { chooseUserData } from "./user-data";
@@ -42,9 +43,11 @@ const internalAi = new InternalAiService(agentProviders, () => path.join(app.get
 const resources = new ResourceMonitor([ptyManager, agentSessionManager]);
 const roots = new WorkspaceRoots();
 const sourceControl = new SourceControlService([new GitSourceControlProvider(() => executablePath("git"), isWorkspaceTrusted)]);
+const files = new WorkspaceFiles(roots, (target) => shell.trashItem(target));
 const workspaceServices = {
   roots,
-  files: new WorkspaceFiles(roots, (target) => shell.trashItem(target)),
+  files,
+  previews: new FilePreviews(files),
   sourceControl,
   commitMessages: new CommitMessages(sourceControl, internalAi),
 };
@@ -186,6 +189,7 @@ app.whenReady().then(async () => {
   await fs.chmod(app.getPath("userData"), 0o700);
   await loadExecutionTrust();
   configureSecurity();
+  workspaceServices.previews.register();
   if (process.env.WORKBENCH_QA_HIDDEN === "1") app.dock?.hide();
   registerIpc(ptyManager, agentSessionManager, workspaceServices, attachments, resources, agentProviders);
   registerAiUsage(aiUsage);

@@ -3,9 +3,14 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { bundleFor } from "./extensions/bundles";
 import { LOCAL_PREVIEW_FRAME_SOURCES, localPreviewUrl } from "../shared/local-preview";
+import { FILE_PREVIEW_SCHEME, isFilePreviewUrl } from "../shared/file-preview";
 
 export const APP_URL = "workbench://app/index.html";
-protocol.registerSchemesAsPrivileged([{ scheme: "workbench", privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }]);
+protocol.registerSchemesAsPrivileged([
+  { scheme: "workbench", privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } },
+  // Workspace files shown as pages (see file-previews.ts): standard so relative URLs resolve, secure so pages work as on https.
+  { scheme: FILE_PREVIEW_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } },
+]);
 const windows = new Set<Electron.WebContents>();
 export function developmentUrl(): string | undefined {
   if (app.isPackaged || !process.env.VITE_DEV_SERVER_URL) return undefined;
@@ -17,8 +22,8 @@ export function registerAppWindow(window: BrowserWindow): void {
   windows.add(window.webContents);
   window.webContents.once("destroyed", () => windows.delete(window.webContents));
   window.webContents.on("will-attach-webview", (event) => event.preventDefault());
-  // The app's own document never navigates. Frames inside it (an extension's local preview, and frames that page opens)
-  // may only go to pages served on this machine.
+  // The app's own document never navigates. Frames inside it (an extension's local preview, a previewed workspace file,
+  // and frames those pages open) may only go to pages served on this machine or to workspace files.
   window.webContents.on("will-frame-navigate", (event) => { if (!localFrame(event)) event.preventDefault(); });
   window.webContents.on("will-redirect", (event) => { if (!localFrame(event)) event.preventDefault(); });
 }
@@ -27,7 +32,7 @@ function devOrigin(): string | undefined {
   return dev && new URL(dev).origin;
 }
 function localFrame({ isMainFrame, url }: { isMainFrame: boolean; url: string }): boolean {
-  return !isMainFrame && Boolean(localPreviewUrl(url, devOrigin()));
+  return !isMainFrame && (Boolean(localPreviewUrl(url, devOrigin())) || isFilePreviewUrl(url));
 }
 /** The app's own document and the files it loads, as opposed to a local preview's. */
 function appResource(url: string): boolean {
@@ -66,7 +71,7 @@ export function configureSecurity(): void {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     // A local preview keeps the policy its own server sends; the app's would stop it loading its scripts and assets.
     if (!appResource(details.url)) { callback({}); return; }
-    const policy = `default-src 'self'; script-src 'self' workbench://ext${dev ? " 'unsafe-inline'" : ""}; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src ${dev ? "'self' ws://127.0.0.1:5173" : "'none'"}; object-src 'none'; frame-src ${LOCAL_PREVIEW_FRAME_SOURCES}; base-uri 'none'; form-action 'none'`;
+    const policy = `default-src 'self'; script-src 'self' workbench://ext${dev ? " 'unsafe-inline'" : ""}; style-src 'self' 'unsafe-inline'; img-src 'self' data: ${FILE_PREVIEW_SCHEME}:; font-src 'self'; connect-src ${dev ? "'self' ws://127.0.0.1:5173" : "'none'"}; object-src 'none'; frame-src ${LOCAL_PREVIEW_FRAME_SOURCES} ${FILE_PREVIEW_SCHEME}:; base-uri 'none'; form-action 'none'`;
     callback({ responseHeaders: { ...details.responseHeaders, "Content-Security-Policy": [policy] } });
   });
 }
