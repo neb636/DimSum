@@ -5,6 +5,7 @@
 //   BLOCKED     another UserPromptSubmit hook rejects the prompt: no turn runs, no Stop
 //   CONTINUE    another Stop hook keeps the turn going: Stop at 0.5 s, the spinner stays until 2 s, then Stop again
 //   PERMISSION  a permission request with nothing on screen that reads as a question; any key answers it
+//   APPROVED    another PermissionRequest hook approves the tool: the spinner stays while it runs for 3 s, then Stop
 //   INTERRUPT   a spinner for 0.3 s, then working with none on screen, and no Stop after Esc (as Claude Code does)
 //   otherwise   a spinner for 0.7 s, then Stop
 import { appendFileSync } from "node:fs";
@@ -71,6 +72,11 @@ process.stdin.on("data", (data) => {
       setTimeout(() => { ready(); void fire("Stop"); }, 2000);
     }
     else if (sent.includes("PERMISSION")) { waiting = true; void fire("PreToolUse", { tool_name: "Bash" }).then(() => fire("PermissionRequest", { tool_name: "Bash" })); }
+    else if (sent.includes("APPROVED")) {
+      spin();
+      void fire("PreToolUse", { tool_name: "Bash" }).then(() => fire("PermissionRequest", { tool_name: "Bash" }));
+      setTimeout(() => { ready(); void fire("PostToolUse", { tool_name: "Bash" }).then(() => fire("Stop")); }, 3000);
+    }
     else if (sent.includes("INTERRUPT")) { spin(); setTimeout(ready, 300); /* no Stop follows an interrupt */ }
     else { spin(); setTimeout(() => { ready(); void fire("Stop"); }, 700); }
   });

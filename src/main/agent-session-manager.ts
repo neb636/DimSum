@@ -58,7 +58,7 @@ interface Session {
    * What the CLI last reported through that channel. Unset until the first message, and again after an interrupt
    * (no message follows one) or after the person answers a question in the terminal: the screen decides meanwhile.
    */
-  reported?: { activity: "ready" | "working" | "waiting-for-input"; detail?: string; tentative?: boolean };
+  reported?: { activity: "ready" | "working" | "waiting-for-input"; detail?: string; tentative?: boolean; at: number };
   /** Prompts the CLI reported taking, and how many it had when the last Enter went. */
   submitted: number;
   submittedAtEnter: number;
@@ -78,6 +78,8 @@ const PASTE_CHUNK_PAUSE_MS = 4;
 const PASTE_SETTLE_MS = 150;
 const COMMAND_SETTLE_MS = 150;
 const MODE_CYCLE_ATTEMPTS = 5;
+/** A CLI draws a question at once; still working this long after reporting one, something else answered it. */
+const QUESTION_DRAWN_MS = 1000;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Extra launch arguments for a new agent session of `providerId` in `cwd`; [] when it doesn't apply. */
@@ -466,7 +468,9 @@ export class AgentSessionManager {
     const report = s.provider.lifecycle?.parse(message);
     if (!report) return;
     if (report.submitted) s.submitted++;
-    if (report.activity) s.reported = { activity: report.activity, detail: report.detail, tentative: report.tentative };
+    if (report.activity) s.reported = { activity: report.activity, detail: report.detail, tentative: report.tentative, at: Date.now() };
+    // Look again once a question should be on screen, whether or not the CLI writes anything meanwhile.
+    if (report.activity === "waiting-for-input") setTimeout(() => this.detect(s), QUESTION_DRAWN_MS + 50);
     this.detect(s);
   }
 
@@ -483,6 +487,12 @@ export class AgentSessionManager {
       reported.tentative = false;
     }
     const { activity, detail } = reported;
+    // A question answered without the person (another hook approving a tool): the tool runs, and nothing reports it
+    // until it ends. The screen decides until the next report.
+    if (activity === "waiting-for-input" && screen.activity === "working" && Date.now() - reported.at >= QUESTION_DRAWN_MS) {
+      s.reported = undefined;
+      return screen;
+    }
     const rule = `lifecycle.${activity}`;
     if (activity === "waiting-for-input") return { ...screen, activity, canSubmit: false, rule, reason: `${detail ? `${detail}. ` : ""}Answer the question in the terminal.` };
     // The screen agrees, or holds a queued prompt (which means a turn runs): its reasons say more.

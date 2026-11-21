@@ -9,7 +9,7 @@ import { assertQaWindowVisibility, qaEnvironment } from "./qa-environment.mjs";
 // QA inventory: Claude Code status from its hooks (scripts/fixtures/claude-hooks-cli.mjs), through the lifecycle
 // channel. One --settings carries both the hooks and the AI usage status line; a turn with no spinner on screen reads
 // as working; a prompt another hook blocks stays ready; a Stop another hook overrules stays working; a permission request with nothing on screen reads as needing input, and answering it in the terminal
-// goes back to the screen until the next hook; an interrupt (which sends no hook) falls back to the screen. Runs
+// goes back to the screen until the next hook, and one another hook approves reads as working; an interrupt (which sends no hook) falls back to the screen. Runs
 // against a fake CLI with its own Claude config folder; no model calls, no network, ~/.claude untouched.
 const directory = await realpath(await mkdtemp(join(tmpdir(), "workbench-lifecycle-qa-")));
 const repo = join(directory, "repo");
@@ -101,13 +101,21 @@ try {
   await stopped(5);
   await pill("Ready");
 
+  // Another hook approves the tool: no question is drawn, so the session reads as working while the tool runs.
+  await send("APPROVED tool");
+  await page.waitForTimeout(1800);
+  assert.match(await page.locator(".session-pill").textContent(), /Working/);
+  await page.getByRole("button", { name: "Interrupt" }).waitFor();
+  await stopped(6);
+  await pill("Ready");
+
   // Claude sends no hook for an interrupt: the screen decides until the next one.
   await send("INTERRUPT me");
   await pill("Working");
   await page.getByRole("button", { name: "Interrupt" }).click();
   await pill("Ready");
   assert.ok((await entries()).some((entry) => entry.type === "interrupt"));
-  assert.equal((await entries()).filter((entry) => entry.type === "prompt").length, 6);
+  assert.equal((await entries()).filter((entry) => entry.type === "prompt").length, 7);
   assert.deepEqual(errors, []);
   console.log(`Agent lifecycle QA passed: ${directory}`);
 } finally {
