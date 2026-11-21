@@ -58,7 +58,7 @@ interface Session {
    * What the CLI last reported through that channel. Unset until the first message, and again after an interrupt
    * (no message follows one) or after the person answers a question in the terminal: the screen decides meanwhile.
    */
-  reported?: { activity: "ready" | "working" | "waiting-for-input"; detail?: string };
+  reported?: { activity: "ready" | "working" | "waiting-for-input"; detail?: string; tentative?: boolean };
   /** Prompts the CLI reported taking, and how many it had when the last Enter went. */
   submitted: number;
   submittedAtEnter: number;
@@ -466,7 +466,7 @@ export class AgentSessionManager {
     const report = s.provider.lifecycle?.parse(message);
     if (!report) return;
     if (report.submitted) s.submitted++;
-    if (report.activity) s.reported = { activity: report.activity, detail: report.detail };
+    if (report.activity) s.reported = { activity: report.activity, detail: report.detail, tentative: report.tentative };
     this.detect(s);
   }
 
@@ -477,6 +477,11 @@ export class AgentSessionManager {
   private withReport(s: Session, screen: AgentDetection): AgentDetection {
     const reported = s.reported;
     if (!reported || screen.activity === "waiting-for-input") return screen;
+    // A report something else could still overrule wins once the screen has shown it: a turn's spinner, its end.
+    if (reported.tentative) {
+      if (screen.activity !== reported.activity) return screen;
+      reported.tentative = false;
+    }
     const { activity, detail } = reported;
     const rule = `lifecycle.${activity}`;
     if (activity === "waiting-for-input") return { ...screen, activity, canSubmit: false, rule, reason: `${detail ? `${detail}. ` : ""}Answer the question in the terminal.` };

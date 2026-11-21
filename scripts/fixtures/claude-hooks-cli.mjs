@@ -1,9 +1,11 @@
 // Deterministic Claude Code stand-in for lifecycle QA; no model calls. It draws Claude's input prompt and runs the hooks
 // it is given through --settings the way Claude Code does (`sh -c`, the event's JSON on stdin), so status can come
 // from hooks while the screen alone would say something else.
-//   QUIET       working with no spinner on screen for 2.5 s, then Stop
+//   QUIET       a spinner for 0.3 s, then working with none on screen for 2.5 s, then Stop
+//   BLOCKED     another UserPromptSubmit hook rejects the prompt: no turn runs, no Stop
+//   CONTINUE    another Stop hook keeps the turn going: Stop at 0.5 s, the spinner stays until 2 s, then Stop again
 //   PERMISSION  a permission request with nothing on screen that reads as a question; any key answers it
-//   INTERRUPT   working with no spinner, and no Stop after Esc (as Claude Code does)
+//   INTERRUPT   a spinner for 0.3 s, then working with none on screen, and no Stop after Esc (as Claude Code does)
 //   otherwise   a spinner for 0.7 s, then Stop
 import { appendFileSync } from "node:fs";
 import { spawn } from "node:child_process";
@@ -20,7 +22,7 @@ appendFileSync(process.env.LIFECYCLE_QA_LOG, JSON.stringify({ type: "launch", se
 let chain = Promise.resolve();
 // One after another, as Claude Code waits for each synchronous hook.
 const fire = (event, extra = {}) => {
-  chain = chain.then(() => Promise.all((merged.hooks?.[event] ?? []).flatMap((group) => group.hooks).filter((hook) => hook.type === "command").map((hook) => new Promise((resolve) => {
+  chain = chain.then(() => log({ type: "hook", event })).then(() => Promise.all((merged.hooks?.[event] ?? []).flatMap((group) => group.hooks).filter((hook) => hook.type === "command").map((hook) => new Promise((resolve) => {
     const child = spawn("/bin/sh", ["-c", hook.command], { stdio: ["pipe", "ignore", "ignore"] });
     child.on("exit", resolve);
     child.stdin.end(JSON.stringify({ session_id: "fixture", hook_event_name: event, cwd: process.cwd(), permission_mode: "default", ...extra }));
@@ -60,9 +62,16 @@ process.stdin.on("data", (data) => {
   log({ type: "prompt", prompt: sent });
   ready();
   void fire("UserPromptSubmit", { prompt: sent }).then(() => {
-    if (sent.includes("QUIET")) setTimeout(() => void fire("Stop"), 2500);
+    const spin = () => screen("✻ Thinking… (esc to interrupt)\r\n❯ ");
+    if (sent.includes("QUIET")) { spin(); setTimeout(ready, 300); setTimeout(() => void fire("Stop"), 2800); }
+    else if (sent.includes("BLOCKED")) screen("  ⎿  Prompt blocked by a hook\r\n❯ ");
+    else if (sent.includes("CONTINUE")) {
+      spin();
+      setTimeout(() => void fire("Stop").then(() => log({ type: "stop-overruled" })), 500);
+      setTimeout(() => { ready(); void fire("Stop"); }, 2000);
+    }
     else if (sent.includes("PERMISSION")) { waiting = true; void fire("PreToolUse", { tool_name: "Bash" }).then(() => fire("PermissionRequest", { tool_name: "Bash" })); }
-    else if (sent.includes("INTERRUPT")) { /* no Stop follows an interrupt */ }
-    else { screen("✻ Thinking… (esc to interrupt)\r\n❯ "); setTimeout(() => { ready(); void fire("Stop"); }, 700); }
+    else if (sent.includes("INTERRUPT")) { spin(); setTimeout(ready, 300); /* no Stop follows an interrupt */ }
+    else { spin(); setTimeout(() => { ready(); void fire("Stop"); }, 700); }
   });
 });

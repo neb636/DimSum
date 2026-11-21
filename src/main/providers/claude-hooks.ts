@@ -22,14 +22,16 @@ function report(message: unknown): LifecycleReport | undefined {
   switch (event.hook_event_name) {
     // Compaction can happen in the middle of a turn; the others open a conversation that waits for a prompt.
     case "SessionStart": return event.source === "compact" ? undefined : { activity: "ready" };
-    case "UserPromptSubmit": return { activity: "working", submitted: true };
+    // Hooks for one event run in parallel, so another one (the person's own) can still block the prompt or the stop.
+    case "UserPromptSubmit": return { activity: "working", submitted: true, tentative: true };
     case "PreToolUse": case "PostToolUse": case "PostToolUseFailure": case "PermissionDenied":
       return subagent ? undefined : { activity: "working", detail: tool && `Running ${tool}` };
     case "PermissionRequest": return { activity: "waiting-for-input", detail: tool && `${tool} needs permission` };
     case "Notification":
       if (event.notification_type === "idle_prompt") return { activity: "ready" };
       return typeof event.notification_type === "string" && ASKS.has(event.notification_type) ? { activity: "waiting-for-input" } : undefined;
-    case "Stop": case "StopFailure": return { activity: "ready" };
+    case "Stop": return { activity: "ready", tentative: true };
+    case "StopFailure": return { activity: "ready" };
     default: return undefined;
   }
 }

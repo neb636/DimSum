@@ -49,6 +49,11 @@ export interface LifecycleReport {
   submitted?: boolean;
   /** A few words for the status reason, such as the tool it runs. */
   detail?: string;
+  /**
+   * Another part of the CLI can still overrule it (another hook blocking the prompt or the stop): the screen decides
+   * until it has shown this activity once.
+   */
+  tentative?: boolean;
 }
 
 /**

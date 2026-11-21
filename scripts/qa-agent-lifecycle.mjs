@@ -8,7 +8,7 @@ import { assertQaWindowVisibility, qaEnvironment } from "./qa-environment.mjs";
 
 // QA inventory: Claude Code status from its hooks (scripts/fixtures/claude-hooks-cli.mjs), through the lifecycle
 // channel. One --settings carries both the hooks and the AI usage status line; a turn with no spinner on screen reads
-// as working; a permission request with nothing on screen reads as needing input, and answering it in the terminal
+// as working; a prompt another hook blocks stays ready; a Stop another hook overrules stays working; a permission request with nothing on screen reads as needing input, and answering it in the terminal
 // goes back to the screen until the next hook; an interrupt (which sends no hook) falls back to the screen. Runs
 // against a fake CLI with its own Claude config folder; no model calls, no network, ~/.claude untouched.
 const directory = await realpath(await mkdtemp(join(tmpdir(), "workbench-lifecycle-qa-")));
@@ -50,6 +50,9 @@ try {
     await page.locator(".wb-tooltip").filter({ hasText: expected }).waitFor();
     await page.mouse.move(0, 0);
   };
+  // Every Stop the fixture has sent: a turn's last one arriving late would land in the next turn.
+  const stops = async () => (await entries()).filter((entry) => entry.type === "hook" && entry.event === "Stop").length;
+  const stopped = async (count) => { for (let i = 0; i < 100 && (await stops()) < count; i++) await page.waitForTimeout(100); assert.equal(await stops(), count); };
   const send = async (text) => {
     await prompt().fill(text);
     await page.getByRole("button", { name: "Send prompt", exact: true }).click();
@@ -59,6 +62,7 @@ try {
   await page.getByRole("button", { name: /Select model/ }).click();
   await page.getByRole("option", { name: "Haiku", exact: true }).click();
   await send("Hello there");
+  await stopped(1);
   await pill("Ready");
   // The usage status line and the hooks arrive as one --settings: Claude Code would apply only the last of two.
   const [launch] = (await entries()).filter((entry) => entry.type === "launch");
@@ -70,6 +74,21 @@ try {
   await send("QUIET turn");
   await pill("Working");
   await rule("lifecycle.working");
+  await stopped(2);
+  await pill("Ready");
+
+  // Another hook rejects the prompt: no turn runs, so the session stays ready rather than waiting for a Stop.
+  await send("BLOCKED prompt");
+  await page.waitForTimeout(1000);
+  await pill("Ready");
+  await rule("claude.prompt");
+
+  // Another Stop hook keeps the turn going: the first Stop doesn't end it while the spinner is still on screen.
+  await send("CONTINUE turn");
+  for (let i = 0; i < 50 && !(await entries()).some((entry) => entry.type === "stop-overruled"); i++) await page.waitForTimeout(100);
+  await page.waitForTimeout(200);
+  assert.match(await page.locator(".session-pill").textContent(), /Working/);
+  await stopped(4);
   await pill("Ready");
 
   // A permission request the screen doesn't show as a question.
@@ -79,6 +98,7 @@ try {
   await page.locator(".xterm-helper-textarea").focus();
   await page.waitForTimeout(150);
   await page.keyboard.press("1");
+  await stopped(5);
   await pill("Ready");
 
   // Claude sends no hook for an interrupt: the screen decides until the next one.
@@ -87,7 +107,7 @@ try {
   await page.getByRole("button", { name: "Interrupt" }).click();
   await pill("Ready");
   assert.ok((await entries()).some((entry) => entry.type === "interrupt"));
-  assert.equal((await entries()).filter((entry) => entry.type === "prompt").length, 4);
+  assert.equal((await entries()).filter((entry) => entry.type === "prompt").length, 6);
   assert.deepEqual(errors, []);
   console.log(`Agent lifecycle QA passed: ${directory}`);
 } finally {
