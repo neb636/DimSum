@@ -3,7 +3,9 @@ import type {
   BaseBranches, DiffBase, SearchOptions, SearchResult, SourceControlAction, SourceControlBranchAction, SourceControlCommitFile, SourceControlCommitFileContents,
   SourceControlCommitOptions, SourceControlFeature, SourceControlHistory, SourceControlStash, SourceControlStashAction, SourceControlStatus, WorktreeResult, ExistingWorktree, WorktreeDetails,
 } from "../../shared/models";
-import { worktreeContainer } from "../workspace-files";
+import { promises as fs } from "node:fs";
+import { worktreeFolderName } from "../../shared/workspace-tree";
+import { worktreeContainer } from "../worktree-location";
 
 export type ProviderStatus = Omit<SourceControlStatus, "providerId" | "providerLabel" | "root" | "actions" | "features">;
 
@@ -203,7 +205,7 @@ export class SourceControlService {
 
   async createWorktree(root: string, branch: string, base?: string): Promise<WorktreeResult> {
     const provider = await this.require(root);
-    const target = path.join(worktreeContainer(root), branch.replace(/[^A-Za-z0-9._-]+/g, "-"));
+    const target = path.join(worktreeContainer(await fs.realpath(root)), worktreeFolderName(branch));
     return provider.createWorktree(root, branch, target, base);
   }
 

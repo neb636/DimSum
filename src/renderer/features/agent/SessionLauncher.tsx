@@ -7,7 +7,8 @@ import { Button } from "../../ui/controls";
 import { CreateFromPicker } from "./CreateFromPicker";
 import { useBaseBranches } from "./use-base-branches";
 import { useWorkbenchStore } from "../../state/workbench-store";
-import { repositoryOf, suggestedBranch, worktreeFolderPreview } from "../../../shared/workspace-tree";
+import { repositoryOf, suggestedBranch, worktreeFolderName, worktreeFolderPreview } from "../../../shared/workspace-tree";
+import { useWorktreeContainer } from "../worktrees/worktrees";
 
 export function SessionLauncher({ workspace, state, providers, selected, busy, needsModel, error, onChange, onStart }: {
   workspace: Workspace;
@@ -35,7 +36,8 @@ export function SessionLauncher({ workspace, state, providers, selected, busy, n
   const branchTaken = runIn.kind === "worktree" && Boolean(bases.data?.branches.some((b) => b.kind === "local" && b.name === runIn.branch));
   const available = Boolean(providers.find((p) => p.id === selected)?.available);
   const agents = providers.filter((p) => services.sessions.get(p.id)?.kind === "agent");
-  const location = state.cwd ?? (runIn.kind === "worktree" ? worktreeFolderPreview(repository.path, runIn.branch) : workspace.path);
+  const container = useWorktreeContainer(runIn.kind === "worktree" && !state.cwd ? repository.path : "");
+  const location = state.cwd ?? (runIn.kind === "worktree" ? (container ? worktreeFolderPreview(container, runIn.branch) : worktreeFolderName(runIn.branch)) : workspace.path);
 
   return <section className="session-launcher" aria-label="New agent session">
     <div className="launcher-heading">

@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Button, Dialog, Heading, Input, Label, Modal, ModalOverlay, TextField, ToggleButton, ToggleButtonGroup } from "react-aria-components";
 import type { ExistingWorktree, Workspace } from "../../../shared/models";
 import { isFilesWorkspace } from "../../../shared/files-workspace";
-import { suggestedBranch, worktreeFolderPreview } from "../../../shared/workspace-tree";
+import { suggestedBranch, worktreeFolderName, worktreeFolderPreview } from "../../../shared/workspace-tree";
 import { errorMessage } from "../../core/errors";
 import { services } from "../../core/services";
 import { useWorkbenchStore } from "../../state/workbench-store";
@@ -11,7 +11,7 @@ import { IconButton } from "../../ui/controls";
 import { CreateFromPicker, type BaseChoice } from "../agent/CreateFromPicker";
 import { useBaseBranches } from "../agent/use-base-branches";
 import { relativeTime } from "../source-control/source-control-store";
-import { byNewest, createWorktree, openWorktree, useWorktreeDialog, worktreeName, type WorktreeOpening } from "./worktrees";
+import { byNewest, createWorktree, openWorktree, useWorktreeContainer, useWorktreeDialog, worktreeName, type WorktreeOpening } from "./worktrees";
 
 const OPENINGS: { id: string; label: string; icon: typeof AgentIcon; value: WorktreeOpening }[] = [
   { id: "agent", label: "Agent session", icon: AgentIcon, value: "agent" },
@@ -43,6 +43,7 @@ function WorktreeForm({ repository, close }: { repository: Workspace; close: () 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const bases = useBaseBranches(repository.path, true);
+  const container = useWorktreeContainer(repository.path);
   const workspaces = useWorkbenchStore((state) => state.workspaces);
   const open = workspaces.filter((item) => item.parentId === repository.id || item.id === repository.id).map((item) => item.path);
   const [existing, setExisting] = useState<ExistingWorktree[]>([]);
@@ -95,7 +96,7 @@ function WorktreeForm({ repository, close }: { repository: Workspace; close: () 
         </ToggleButtonGroup>
       </dd>
       <dt>Location</dt>
-      <dd><code className="launcher-location">{worktreeFolderPreview(repository.path, name || "…")}</code></dd>
+      <dd><code className="launcher-location">{container ? worktreeFolderPreview(container, name || "…") : worktreeFolderName(name || "…")}</code></dd>
     </dl>
     {error && <p role="alert" className="agent-error">{error}</p>}
     {closed.length > 0 && <section className="worktree-existing" aria-labelledby="worktree-existing-title">

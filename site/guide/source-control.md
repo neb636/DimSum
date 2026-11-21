@@ -25,7 +25,7 @@ DimSum never force-pushes.
 
 ## Branches and worktrees
 
-From the branch picker you can switch branches, create, delete, merge or rebase a branch, and create a worktree with **New worktree…**. A worktree gets its own branch in a folder next to the workspace (`<workspace>-worktrees/`) and is listed under the workspace in the sidebar with its own tabs, so several agents can work at once without getting in each other's way. Source control always shows the checkout you are looking at. See [Local and worktrees](/guide/workbench#local-and-worktrees).
+From the branch picker you can switch branches, create, delete, merge or rebase a branch, and create a worktree with **New worktree…**. A worktree gets its own branch in a folder in `~/dimsum/worktrees/<repository>-<id>/` and is listed under the workspace in the sidebar with its own tabs, so several agents can work at once without getting in each other's way. Source control always shows the checkout you are looking at. See [Local and worktrees](/guide/workbench#local-and-worktrees).
 
 ## History and stashes
 

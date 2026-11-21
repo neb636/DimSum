@@ -1,6 +1,7 @@
 import { imagePreview } from "./image-previews";
 import { mergePersonalFiles } from "./worktree-adoption";
 import { withConversations } from "./worktree-conversations";
+import { worktreeContainer } from "./worktree-location";
 import type { AgentProviderAdapter } from "./agent-provider";
 import { app, dialog, ipcMain, shell, Menu, type WebContents } from "electron";
 import { promises as fs } from "node:fs";
@@ -385,6 +386,8 @@ export function registerIpc(ptyManager: PtyManager, agentSessionManager: AgentSe
     workspace.roots.add(result.path, root);
     return result;
   });
+  handle(IPC.sourceControlWorktreeContainer, async (_event, input: unknown) =>
+    worktreeContainer(await fs.realpath(await allowedRoot(workspaceRootSchema.parse(input).root))));
   handle(IPC.sourceControlWorktrees, async (_event, input: unknown) =>
     withConversations(agentProviders, await workspace.sourceControl.worktrees(await allowedRoot(workspaceRootSchema.parse(input).root))));
   // Only a checkout the repository itself lists can be opened or removed through these.

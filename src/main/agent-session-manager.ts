@@ -79,7 +79,10 @@ export class AgentSessionManager {
   constructor(
     private readonly providers: AgentProviderAdapter[],
     private readonly spawn = spawnTerminal,
-    /** The folder holding a view's prompt attachments; it exists once this returns. */
+    /**
+     * The folder holding a view's prompt attachments; it exists once this returns. Every view's folder sits directly in
+     * one attachments folder, which the CLI is told to trust: DimSum made it, and it holds only what the person attached.
+     */
     private readonly attachmentFolder?: (viewId: string) => string,
     private readonly catalogue = new AgentModelCatalogue(providers),
     /** Arguments other features add to every agent session they apply to, after the adapter's own. */
@@ -107,7 +110,12 @@ export class AgentSessionManager {
       conversationId = randomUUID();
       args.push(...provider.conversationArgs(conversationId));
     }
-    if (provider.readFolderArgs && this.attachmentFolder) args.push(...provider.readFolderArgs(this.attachmentFolder(options.viewId)));
+    if (provider.readFolderArgs && this.attachmentFolder) {
+      const folder = this.attachmentFolder(options.viewId);
+      args.push(...provider.readFolderArgs(folder));
+      // Trusting the shared parent once covers every view's folder, so the CLI doesn't ask about each new one.
+      if (provider.trustFolder) args.push(...provider.trustFolder(path.dirname(folder)));
+    }
     // Model and effort are launch arguments of a new conversation; a resumed one keeps what it was saved with.
     if (options.settings && !options.resume) {
       const { model, effort } = options.settings;

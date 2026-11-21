@@ -2,9 +2,10 @@ import type { Workspace } from "./models";
 
 /**
  * A workspace may have worktrees: other checkouts of the same repository, each a workspace of its own (with its own
- * folder and tabs) whose `parentId` names the repository's workspace. Worktrees DimSum creates live beside the
- * repository, in `<repository>-worktrees/<name>`.
+ * folder and tabs) whose `parentId` names the repository's workspace. Worktrees DimSum creates live in
+ * `~/dimsum/worktrees/<repository>-<id>/<name>`; older ones live beside the repository, in `<repository>-worktrees/<name>`.
  */
+/** The older layout: `<repository>-worktrees/<name>`, beside the repository. Still recognized, no longer created. */
 export const WORKTREE_SUFFIX = "-worktrees";
 
 /** The repository a workspace belongs to: its parent, or itself. */
@@ -33,7 +34,7 @@ function trimSeparators(path: string): string {
   return path.replace(/[\\/]+$/, "");
 }
 
-/** `<repository>-worktrees/<name>` → `name` when `path` is exactly such a folder. */
+/** `<repository>-worktrees/<name>` (the older layout) → `name` when `path` is exactly such a folder. */
 export function worktreeNameIn(repositoryPath: string, path: string): string | undefined {
   const base = `${trimSeparators(repositoryPath)}${WORKTREE_SUFFIX}`;
   const target = trimSeparators(path);
@@ -42,9 +43,14 @@ export function worktreeNameIn(repositoryPath: string, path: string): string | u
   return name && !/[\\/]/.test(name) ? name : undefined;
 }
 
-/** The folder a new worktree for `branch` gets. The main process decides; this mirrors it for display. */
-export function worktreeFolderPreview(repositoryPath: string, branch: string): string {
-  return `${trimSeparators(repositoryPath)}${WORKTREE_SUFFIX}/${branch.replace(/[^A-Za-z0-9._-]+/g, "-")}`;
+/** The folder name a new worktree for `branch` gets inside its repository's worktree folder. */
+export function worktreeFolderName(branch: string): string {
+  return branch.replace(/[^A-Za-z0-9._-]+/g, "-");
+}
+
+/** The folder a new worktree for `branch` gets, for display; `container` is the repository's worktree folder from main. */
+export function worktreeFolderPreview(container: string, branch: string): string {
+  return `${trimSeparators(container)}/${worktreeFolderName(branch)}`;
 }
 
 /** A fresh branch name; two made in the same minute must not collide. */
