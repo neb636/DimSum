@@ -154,6 +154,16 @@
   --wb-code-property: #4eb0cc;
   --wb-code-meta: #ffa14f;
 
+  /* Syntax colors for code shown on panel surfaces (search results); the dark editor keeps its own */
+  --wb-syntax-keyword: #ad3da4;
+  --wb-syntax-string: #d12f1b;
+  --wb-syntax-comment: #707f8c;
+  --wb-syntax-number: #272ad8;
+  --wb-syntax-type: #703daa;
+  --wb-syntax-function: #3e8087;
+  --wb-syntax-property: #0f68a0;
+  --wb-syntax-meta: #78492a;
+
   /* Terminal palette (read by xterm, so values stay literal) */
   --wb-terminal-bg: #1c1c1f;
   --wb-terminal-fg: #e3e3e8;
@@ -225,6 +235,15 @@
     --wb-shadow-modal: 0 0 0 0.5px #ffffff1f, 0 24px 64px -12px #000000b3, 0 4px 12px #00000066;
     --wb-shadow-thumb: 0 0 0 0.5px #ffffff1a, 0 1px 2px #00000066;
     --wb-shadow-inset: inset 0 0 0 0.5px #ffffff0d;
+
+    --wb-syntax-keyword: #ff7ab2;
+    --wb-syntax-string: #ff8170;
+    --wb-syntax-comment: #7f8c98;
+    --wb-syntax-number: #d9c97c;
+    --wb-syntax-type: #dabaff;
+    --wb-syntax-function: #67b7a4;
+    --wb-syntax-property: #4eb0cc;
+    --wb-syntax-meta: #ffa14f;
 
     /* Code surfaces keep their colors: a terminal reads its palette once, when it opens. */
   }

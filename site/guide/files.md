@@ -14,6 +14,8 @@ The usual shortcuts work while the panel has focus. See [Keyboard shortcuts](/re
 
 Search file **Names** or **Contents**. Contents search supports **Match case**, **Regular expression** and limiting the search to a folder. Press <kbd>⇧</kbd><kbd>⌘</kbd><kbd>F</kbd> to search contents with **Find in Files**.
 
+Each matching line is colored the way the editor colors that file's language. A file with no known language shows plain text. Each line is colored by itself, so a line inside a multi-line comment or string can be colored as code.
+
 To jump to a file by name, press <kbd>⌘</kbd><kbd>P</kbd> (**Go to File…**). This also works while a terminal has focus.
 
 ## The editor

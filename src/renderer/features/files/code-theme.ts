@@ -1,6 +1,23 @@
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
-import { tags } from "@lezer/highlight";
+import { tagHighlighter, tags, type Tag } from "@lezer/highlight";
+
+/** Which syntax color each kind of token takes: shared by the editor and the code shown in lists. */
+const syntaxTokens: { tag: Tag | Tag[]; token: string; style?: Record<string, string> }[] = [
+  { tag: [tags.keyword, tags.modifier, tags.controlKeyword, tags.operatorKeyword], token: "keyword" },
+  { tag: [tags.string, tags.special(tags.string), tags.regexp], token: "string" },
+  { tag: [tags.comment, tags.lineComment, tags.blockComment], token: "comment", style: { fontStyle: "italic" } },
+  { tag: [tags.number, tags.bool, tags.null, tags.atom], token: "number" },
+  { tag: [tags.typeName, tags.className, tags.namespace], token: "type" },
+  { tag: [tags.function(tags.variableName), tags.function(tags.propertyName), tags.macroName], token: "function" },
+  { tag: [tags.propertyName, tags.attributeName], token: "property" },
+  { tag: [tags.meta, tags.annotation, tags.processingInstruction], token: "meta" },
+  { tag: [tags.heading, tags.strong], token: "keyword", style: { fontWeight: "600" } },
+  { tag: tags.link, token: "function", style: { textDecoration: "underline" } },
+];
+
+/** Gives each token a `syntax-<token>` class, for code drawn outside an editor (colored by `--wb-syntax-*`). */
+export const syntaxClasses = tagHighlighter(syntaxTokens.map(({ tag, token }) => ({ tag, class: `syntax-${token}` })));
 
 /** Code surfaces stay dark inside the light chrome; every color is a theme token. */
 export const codeTheme = [
@@ -16,16 +33,5 @@ export const codeTheme = [
     "&.cm-focused": { outline: "none" },
     "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": { backgroundColor: "var(--wb-code-selection)" },
   }, { dark: true }),
-  syntaxHighlighting(HighlightStyle.define([
-    { tag: [tags.keyword, tags.modifier, tags.controlKeyword, tags.operatorKeyword], color: "var(--wb-code-keyword)" },
-    { tag: [tags.string, tags.special(tags.string), tags.regexp], color: "var(--wb-code-string)" },
-    { tag: [tags.comment, tags.lineComment, tags.blockComment], color: "var(--wb-code-comment)", fontStyle: "italic" },
-    { tag: [tags.number, tags.bool, tags.null, tags.atom], color: "var(--wb-code-number)" },
-    { tag: [tags.typeName, tags.className, tags.namespace], color: "var(--wb-code-type)" },
-    { tag: [tags.function(tags.variableName), tags.function(tags.propertyName), tags.macroName], color: "var(--wb-code-function)" },
-    { tag: [tags.propertyName, tags.attributeName], color: "var(--wb-code-property)" },
-    { tag: [tags.meta, tags.annotation, tags.processingInstruction], color: "var(--wb-code-meta)" },
-    { tag: [tags.heading, tags.strong], color: "var(--wb-code-keyword)", fontWeight: "600" },
-    { tag: tags.link, color: "var(--wb-code-function)", textDecoration: "underline" },
-  ])),
+  syntaxHighlighting(HighlightStyle.define(syntaxTokens.map(({ tag, token, style }) => ({ tag, color: `var(--wb-code-${token})`, ...style })))),
 ];

@@ -2,6 +2,7 @@ import type { FileLocation } from "../../../shared/file-operations";
 import { useContextMenu, type ContextAction } from "../../ui/ContextMenu";
 import { useChoiceDialog } from "../../ui/ChoiceDialog";
 import { locationActions, operateFiles, useFileActions, refreshFileHistory } from "./file-actions";
+import { HighlightedLine } from "./HighlightedLine";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Button as AriaButton,
@@ -385,7 +386,7 @@ export function FilesPanel({ workspace }: PanelProps) {
             <GridList aria-label={`Matches in ${path}`} className="search-lines" items={lines.map((match) => ({ ...match, id: `${match.line}` }))}
               onAction={(key) => open(path, { line: Number(key) })}>
               {(match) => <GridListItem data-file-context={path} data-match-text={match.text} data-match-line={match.line} id={match.id} textValue={match.text} className="search-line" {...menu.bind(() => searchActions(path, match.line, match.text))}>
-                <small>{match.line}</small><code>{match.text.trim()}</code>{menu.overflow(searchActions(path, match.line, match.text), `${path}:${match.line}`)}
+                <small>{match.line}</small><HighlightedLine path={path} text={match.text.trim()} />{menu.overflow(searchActions(path, match.line, match.text), `${path}:${match.line}`)}
               </GridListItem>}
             </GridList>
           </DisclosurePanel>
