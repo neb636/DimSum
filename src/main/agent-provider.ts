@@ -81,6 +81,11 @@ export interface AgentProviderAdapter {
    * Returns launch arguments. Best effort: when it can't, the CLI asks in the terminal as usual.
    */
   trustFolder?: (folder: string) => string[];
+  /**
+   * Launch arguments that add `note` to the session's system (or developer) instructions for this launch only, without
+   * writing the CLI's own configuration. Sessions started outside DimSum never see it.
+   */
+  systemNoteArgs?: (note: string) => string[];
   /** Models offered for new conversations until the CLI's own list has been read, or when it can't be. */
   models?: AgentModelChoice[];
   listModels?: AgentModelListing;

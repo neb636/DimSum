@@ -22,3 +22,4 @@ DimSum sets these in every terminal and agent session it starts, so scripts and 
 | --- | --- |
 | `DIMSUM_HOME` | Your `~/.dimsum` folder (or the folder `DIMSUM_HOME` pointed to). |
 | `DIMSUM_GUIDE` | The path to the extension guide for agents, the same text as the [SDK guide](/extend/sdk). |
+| `DIMSUM_REFERENCE` | The path to the index of DimSum's agent reference, which every agent session is pointed at. See [What agents know about DimSum](/guide/agent-sessions#what-agents-know-about-dimsum). |

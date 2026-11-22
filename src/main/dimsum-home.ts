@@ -20,3 +20,9 @@ export function agentGuidePath(): string | undefined {
   const guide = path.join(sdkFolder(), "GUIDE.md");
   return existsSync(guide) ? guide : undefined;
 }
+
+/** The index of the reference agent sessions are pointed at (`src/agent-reference/`); undefined in a build that has none. */
+export function agentReferencePath(): string | undefined {
+  const index = path.join(sdkFolder(), "reference", "README.md");
+  return existsSync(index) ? index : undefined;
+}
