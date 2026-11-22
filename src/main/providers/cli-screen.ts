@@ -59,21 +59,29 @@ export function detectCliScreen(kind: "codex" | "claude") {
     let queuedPrompt = false;
     const result = (activity: AgentDetection["activity"], canSubmit: boolean, rule: string, reason: string, inputState: AgentDetection["inputState"] = "unavailable"): AgentDetection =>
       ({ activity, canSubmit, inputState, rule: `${kind}.${rule}`, reason, ...(queuedPrompt ? { queuedPrompt } : {}) });
-    // Codex also reports it itself (see its adapter's reportedState), which survives a redesign of its spinner.
-    const working = kind === "codex"
-      ? screen.reportedState === "working" || /esc to (?:interrupt|cancel)|• (?:Working|Thinking)|(?:Working|Thinking)\s*[.…]|Waiting for startup/i.test(bottom)
-      : /esc to (?:interrupt|cancel)|(?:^|\n)\s*[✻✽✶✳✢·] [^\n]+…/i.test(bottom);
     const prompt = kind === "codex" ? /^\s*›\s?(.*)$/ : /^\s*[❯>]\s?(.*)$/;
     let match = screen.cursorLine.match(prompt);
+    let promptRow = screen.cursorY;
     let multiline = false;
+    // A draft's continuation lines are indented under the prompt. Codex shows a paste of up to about 1000 characters
+    // in full, and wrapped lines (attachment paths) make it taller still, so the prompt can be far above the cursor.
     if (!match) {
-      for (let row = screen.cursorY - 1; row >= Math.max(0, screen.cursorY - 12); row--) {
+      for (let row = screen.cursorY - 1; row >= 0; row--) {
         const line = screen.lines[row];
         const candidate = line.match(prompt);
-        if (candidate) { match = candidate; multiline = true; break; }
+        if (candidate) { match = candidate; promptRow = row; multiline = true; break; }
         if (line.trim() && !/^\s{2}/.test(line)) break;
       }
     }
+    // What the CLI drew, without the text typed into its input: a draft that says "sign in" or "Thinking..." is not
+    // the CLI asking or working. Only after something was typed or pasted (a question drawn after Enter must not hide
+    // under an earlier "›" in the transcript), and a numbered line is a menu's selected option, part of a question.
+    const typed = match && screen.inputWasEdited && !/^\d+\.\s/.test(match[1]);
+    const drawn = typed ? lines.filter((_, row) => row < promptRow || row > screen.cursorY).slice(-12).join("\n") : bottom;
+    // Codex also reports it itself (see its adapter's reportedState), which survives a redesign of its spinner.
+    const working = kind === "codex"
+      ? screen.reportedState === "working" || /esc to (?:interrupt|cancel)|• (?:Working|Thinking)|(?:Working|Thinking)\s*[.…]|Waiting for startup/i.test(drawn)
+      : /esc to (?:interrupt|cancel)|(?:^|\n)\s*[✻✽✶✳✢·] [^\n]+…/i.test(drawn);
     const atStart = screen.cursorX <= (screen.cursorLine.indexOf(kind === "codex" ? "›" : "❯") + 2);
     // Both CLIs draw placeholders dim and typed text never is. Codex's dim placeholder is also matched by its wording.
     // Claude's dim text is its "Try ..." placeholder or a suggested next prompt (any wording, such as "yes, start step 5"),
@@ -91,7 +99,7 @@ export function detectCliScreen(kind: "codex" | "claude") {
     const inputState = !match || !screen.bracketedPaste ? "unavailable" : empty ? "empty" : "draft";
     // Transcript text can mention "sign in" or "select an option"; a decision UI replaces the empty input prompt.
     // Codex's update picker ("1. Update now · 2. Skip · enter continue · esc skip") is a decision too.
-    if (!empty && /trust (?:this|the)|allow once|allow always|yes, (?:proceed|allow)|do you want to (?:proceed|allow)|would you like to (?:run|proceed)|enter to confirm|enter continue|esc skip|skip until next version|select an option|sign in|log in|choose.*account/i.test(bottom)) {
+    if (!empty && /trust (?:this|the)|allow once|allow always|yes, (?:proceed|allow)|do you want to (?:proceed|allow)|would you like to (?:run|proceed)|enter to confirm|enter continue|esc skip|skip until next version|select an option|sign in|log in|choose.*account/i.test(drawn)) {
       return result("waiting-for-input", false, "decision", "Answer the question in the terminal.");
     }
     // A held prompt means a turn is running, even in a frame without a spinner (Claude draws none while streaming text).

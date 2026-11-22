@@ -82,7 +82,13 @@ process.stdin.on("data", (data) => {
   if (start >= 0 && end >= start) {
     prompt = pending.slice(0, start) + pending.slice(start + 6, end);
     pending = pending.slice(end + 6);
-    screen("› pasted draft");
+    // AS TYPED: the draft drawn in full as Codex draws a paste under its collapse size, wrapped lines indented under
+    // the prompt. A tall one puts "›" far above the cursor, or off the top of the screen.
+    if (prompt.includes("AS TYPED")) {
+      const width = (process.stdout.columns || 80) - 2;
+      const rows = prompt.split("\n").flatMap((line) => line.match(new RegExp(`.{1,${width}}`, "g")) ?? [""]);
+      screen(rows.map((row, index) => (index ? "  " : "› ") + row).join("\r\n"));
+    } else screen("› pasted draft");
   }
   if (pending.includes("\r") && prompt) {
     appendFileSync(process.env.COMPOSER_QA_LOG, JSON.stringify({ prompt, model, effort, plan, cwd: process.cwd() }) + "\n");

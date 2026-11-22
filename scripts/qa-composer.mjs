@@ -14,7 +14,7 @@ import { assertQaWindowVisibility, qaEnvironment } from "./qa-environment.mjs";
 // save, only me in .dimsum/instructions.local.json) and their manager, composed
 // prompt order, title from the first prompt, recall, attachments (picker, drop, paste,
 // limit, restart, cleanup), resuming after a restart (the tab the app opens on resumes, others wait for a click; draft and attachments stay),
-// uncertain delivery handoff, an uncertain delivery the CLI takes late, Plan chosen before the CLI starts,
+// uncertain delivery handoff, an uncertain delivery the CLI takes late, tall drafts drawn in full, Plan chosen before the CLI starts,
 // Files tree and read-only viewer, Source control commit, Active views, tab overflow, and
 // layout persistence across restart. Runs against a deterministic fake CLI; no model calls.
 const directory = await realpath(await mkdtemp(join(tmpdir(), "workbench-composer-qa-")));
@@ -209,6 +209,16 @@ try {
   assert.equal(await prompt().inputValue(), "");
   assert.equal((await prompts()).filter((item) => item.prompt.includes("LATE pickup")).length, 1);
   await shot("late-confirmation");
+
+  // A draft drawn in full, taller than the old 12-row search for the prompt and saying "sign in" (a decision's words),
+  // then one taller than the terminal: both are handed over with Enter.
+  for (const lines of [14, 80]) {
+    await prompt().fill(["AS TYPED: fix the sign in page", ...Array.from({ length: lines }, (_, i) => `- /attachments/view-${i}/${"x".repeat(i % 3 ? 20 : 140)}.png`)].join("\n"));
+    await page.getByRole("button", { name: "Send prompt", exact: true }).click();
+    await waitFeedback("Prompt handed");
+    assert.match((await prompts()).at(-1).prompt, new RegExp(`view-${lines - 1}/`));
+    await page.waitForFunction(() => document.querySelector(".session-pill")?.textContent.includes("Ready"));
+  }
 
   // Changing the model after a prompt offers a restart that keeps the draft.
   await page.getByRole("button", { name: /Model/ }).click();
