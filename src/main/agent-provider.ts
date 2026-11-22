@@ -10,6 +10,8 @@ export interface ScreenObservation {
   bracketedPaste: boolean;
   /** What the CLI last reported about itself through its own escape sequence, if its adapter reads one. */
   reportedState?: "idle" | "working";
+  /** The prompt just pasted, until Enter goes: lets an adapter recognize a draft taller than the terminal. */
+  pasted?: string;
 }
 export type AgentDetection = Pick<AgentSessionStatus, "activity" | "canSubmit" | "inputState" | "reason" | "rule" | "queuedPrompt">;
 

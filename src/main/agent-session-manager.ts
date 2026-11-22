@@ -42,6 +42,8 @@ interface Session {
   resized: boolean;
   /** What the CLI reports about itself, when its adapter reads that; the window title may show it is starting up. */
   reportedState?: "idle" | "working";
+  /** The prompt being delivered, from its paste until Enter. */
+  pasted?: string;
   title: string;
   conversationId?: string;
   /** The footer's mode when the CLI first took prompts; leaving Plan returns to it. */
@@ -238,18 +240,19 @@ export class AgentSessionManager {
         if (index > 0 && index < submission.paste.length - 1) await sleep(PASTE_CHUNK_PAUSE_MS);
       }
       // Wait for the native input editor to acknowledge a draft, not just a delay.
-      const drafted = () => s.status.inputState === "draft" || this.showsPasteEnd(s, request.prompt);
-      const pasted = await this.waitFor(s, drafted, 2000);
+      s.pasted = request.prompt;
+      const pasted = await this.waitFor(s, () => s.status.inputState === "draft", 2000);
       if (!pasted) throw new Error("Prompt may be pasted. Inspect the terminal before sending again.");
       // Let the editor finish taking the paste before Enter.
       await this.settle(s, PASTE_SETTLE_MS);
       this.detect(s);
-      if (s.status.lifecycle !== "alive" || s.status.activity === "waiting-for-input" || !drafted()) {
+      if (s.status.lifecycle !== "alive" || s.status.activity === "waiting-for-input" || s.status.inputState !== "draft") {
         throw new Error("Prompt may be pasted. Inspect the terminal before sending again.");
       }
       stage = "enter";
       s.submittedAtEnter = s.submitted;
       s.process.write("\r");
+      s.pasted = undefined;
       s.inputWasEdited = false;
       s.interrupted = false;
       // A CLI that is still busy, such as finishing startup, may hold the submitted draft until it can accept it.
@@ -275,7 +278,7 @@ export class AgentSessionManager {
     } catch (error) {
       // A failed mode switch stops before the prompt is pasted: nothing was sent, though the CLI's mode may have moved.
       return { outcome: stage === "none" || stage === "mode" ? "not-sent" : "uncertain", stage, message: error instanceof Error ? error.message : String(error) };
-    } finally { s.sending = false; }
+    } finally { s.sending = false; s.pasted = undefined; }
   }
 
   input(id: string, data: string, owner: WebContents): void {
@@ -389,17 +392,6 @@ export class AgentSessionManager {
     await this.flush(s);
     this.detect(s);
     if (!s.status.canSubmit) throw new Error(s.status.reason);
-  }
-
-  /**
-   * The input's prompt has scrolled off the top: the draft is taller than the terminal. The input was empty before the
-   * paste, so the end of the pasted text under the cursor (the last piece of a wrapped line) is the draft.
-   */
-  private showsPasteEnd(s: Session, prompt: string): boolean {
-    if (s.status.inputState !== "unavailable" || !s.terminal.modes.bracketedPasteMode) return false;
-    const last = prompt.replace(/\r\n/g, "\n").trimEnd().split("\n").at(-1)?.trim() ?? "";
-    const cursor = this.observe(s).cursorLine.trim();
-    return cursor.length > 0 && last.endsWith(cursor);
   }
 
   /** Polls the screen every 50 ms until `check` holds; false on timeout, exit, or a question the person must answer. */
@@ -521,7 +513,7 @@ export class AgentSessionManager {
     const lines = Array.from({ length: s.terminal.rows }, (_, i) => buffer.getLine(buffer.baseY + i)?.translateToString(true) ?? "");
     return { lines, cursorLine: lines[buffer.cursorY] ?? "", cursorX: buffer.cursorX, cursorY: buffer.cursorY,
       cursorCellDim: Boolean(buffer.getLine(buffer.baseY + buffer.cursorY)?.getCell(buffer.cursorX)?.isDim()),
-      inputWasEdited: s.inputWasEdited, bracketedPaste: s.terminal.modes.bracketedPasteMode, reportedState: s.reportedState };
+      inputWasEdited: s.inputWasEdited, bracketedPaste: s.terminal.modes.bracketedPasteMode, reportedState: s.reportedState, pasted: s.pasted };
   }
   private emitPending(s: Session): void {
     clearTimeout(s.dataTimer);
