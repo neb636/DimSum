@@ -2,9 +2,10 @@ import { useContextMenu } from "../../ui/ContextMenu";
 import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
+import { WebLinksAddon } from "@xterm/addon-web-links";
 import "@xterm/xterm/css/xterm.css";
 import type { AgentSessionController, TerminalSessionController } from "../../core/session-provider-registry";
-import { pathsInLine, webLinksInText } from "../../../shared/terminal-paths";
+import { pathsInLine } from "../../../shared/terminal-paths";
 import { openWebLink } from "./web-links";
 import { getPreferences, monoFontStack, usePreferences } from "../../state/preferences";
 
@@ -51,37 +52,7 @@ export function TerminalSurface({ controller, ref, workspaceId, root, onOpenPath
     terminalRef.current = terminal;
     // Plain URLs in the output open in the browser. `linkHandler` only covers OSC 8 hyperlinks, which many programs don't
     // print and which the screen snapshot a view gets on attach doesn't keep. A URL may wrap onto the next rows.
-    const webLinks = terminal.registerLinkProvider({
-      provideLinks: (y, callback) => {
-        const buffer = terminal.buffer.active;
-        let first = y - 1;
-        while (first > 0 && buffer.getLine(first)?.isWrapped) first--;
-        let text = "";
-        const cells: { from: number; to: number; y: number }[] = [];
-        for (let row = first; row < buffer.length; row++) {
-          const line = buffer.getLine(row);
-          if (!line || (row > first && !line.isWrapped)) break;
-          for (let x = 0; x < terminal.cols; x++) {
-            const cell = line.getCell(x);
-            if (!cell || cell.getWidth() === 0) continue;
-            const chars = cell.getChars() || " ";
-            text += chars;
-            for (let i = 0; i < chars.length; i++) cells.push({ from: x + 1, to: x + cell.getWidth(), y: row + 1 });
-          }
-        }
-        const found = webLinksInText(text).flatMap((link) => {
-          const start = cells[link.start], end = cells[link.start + link.length - 1];
-          if (!start || !end || end.y < y || start.y > y) return [];
-          return [{
-            range: { start: { x: start.from, y: start.y }, end: { x: end.to, y: end.y } },
-            text: link.url,
-            decorations: { underline: true, pointerCursor: true },
-            activate: () => void openWebLink(workspaceId, link.url),
-          }];
-        });
-        callback(found.length ? found : undefined);
-      },
-    });
+    terminal.loadAddon(new WebLinksAddon((_event, uri) => void openWebLink(workspaceId, uri)));
     // Paths in the output open that file (at that line) when clicked; only real files under the root are links.
     const known = new Map<string, boolean>();
     const links = root ? terminal.registerLinkProvider({
@@ -147,7 +118,7 @@ export function TerminalSurface({ controller, ref, workspaceId, root, onOpenPath
     refit.current = resize;
     return () => {
       active = false; refit.current = undefined; observer.disconnect(); detach(); offExit?.(); offStatus?.(); input.dispose(); scroll.dispose();
-      links?.dispose(); webLinks.dispose(); terminalRef.current = null;
+      links?.dispose(); terminalRef.current = null;
       host.removeEventListener("wheel", wheel, { capture: true }); host.removeEventListener("pointerdown", pointer, { capture: true });
       host.removeEventListener("keydown", key, { capture: true }); terminal.dispose();
     };
