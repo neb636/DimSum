@@ -34,7 +34,8 @@ function detectCopilotScreen(screen: ScreenObservation): AgentDetection {
   if (/Please use \/login to sign in to use Copilot/i.test(context)) {
     return result("waiting-for-input", "unavailable", "sign-in", "Sign in with /login in the Copilot terminal.");
   }
-  const empty = top === screen.cursorY && !prompt[1].trim();
+  // An empty editor occupies one row. A multiline draft can have a blank prompt row with its cursor on it.
+  const empty = top + 1 === bottom && !prompt[1].trim();
   const inputState = empty ? "empty" : "draft";
   if (screen.reportedState === "working" || interruptHint.test(status)) {
     return result("working", inputState, "working", "Wait until Copilot finishes, or queue a prompt in the terminal.");

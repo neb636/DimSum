@@ -10,7 +10,7 @@ const write = (text) => process.stdout.write(text);
 const at = (row, column = 1) => `\x1b[${row};${column}H`;
 const state = (value) => write(`\x1b]7501;state=${value}:app=copilot\x07`);
 let mode = args.includes("--resume") ? "picker" : "trust";
-let editor = "", input = "", pasting = false;
+let editor = "", input = "", pasting = false, cursorOnFirstLine = false;
 function draw() {
   const rows = process.stdout.rows;
   write("\x1b[2J\x1b[H [Current]  Sessions   Issues   Pull requests   Gists");
@@ -24,7 +24,7 @@ function draw() {
   if (mode === "signed-out") write(at(rows - 4) + "Please use /login to sign in to use Copilot");
   write(at(rows - lines.length - 2) + [rule, ...lines.map((line, i) => `${i ? "  " : "❯ "}${line}`), rule,
     mode === "working" ? " ◎ Working ctrl+c interrupt" : " Interactive · Manual Approval · / commands"].join("\r\n")
-    + at(rows - 2, 3 + (lines.at(-1)?.length ?? 0)));
+    + (cursorOnFirstLine ? at(rows - 1 - lines.length, 3) : at(rows - 2, 3 + (lines.at(-1)?.length ?? 0))));
 }
 
 process.stdin.setRawMode(true);
@@ -48,6 +48,8 @@ process.stdin.on("data", (chunk) => {
     if (chunk === "\x03") { log({ type: "interrupt" }); mode = "ready"; state("done"); draw(); }
     return;
   }
+  if (chunk === "d") { editor = "\nNative draft"; cursorOnFirstLine = true; draw(); return; }
+  if (chunk === "\x03" && cursorOnFirstLine) { editor = ""; cursorOnFirstLine = false; draw(); return; }
   input += chunk;
   if (input.startsWith("\x1b[200~")) { pasting = true; input = input.slice(6); }
   if (pasting) {

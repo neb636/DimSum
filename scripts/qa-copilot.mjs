@@ -38,9 +38,9 @@ try {
   const prompt = () => page.getByRole("textbox", { name: "Prompt", exact: true });
   const send = () => page.getByRole("button", { name: "Send prompt", exact: true }).click();
   const status = (name) => page.getByRole("button", { name: `Session status: ${name}`, exact: true }).waitFor();
-  const answer = async () => {
+  const terminalKey = async (key) => {
     await page.locator(".xterm-helper-textarea").focus();
-    await page.keyboard.press("Enter");
+    await page.keyboard.press(key);
   };
 
   await page.getByRole("radio", { name: /GitHub Copilot CLI/ }).waitFor();
@@ -52,15 +52,19 @@ try {
   await prompt().fill("Reply with OK.\nUse no tools.");
   await send();
   assert.deepEqual((await entries()).map((entry) => entry.type), ["launch"]);
-  await answer();
+  await terminalKey("Enter");
   await page.waitForFunction(() => window.document.querySelector(".terminal-card")?.textContent?.includes("Please use /login"));
   await status("Needs input");
   assert.deepEqual((await entries()).map((entry) => entry.type), ["launch", "decision-input"]);
-  await answer();
+  await terminalKey("Enter");
   await status("Working");
   await page.waitForFunction(() => window.document.querySelector('textarea[aria-label="Prompt"]')?.value === "");
   await page.getByRole("button", { name: "Interrupt", exact: true }).click();
   await status("Ready");
+  // A native draft with its cursor on a blank first line still owns the editor.
+  await terminalKey("d");
+  await page.getByText("A draft is already in the terminal. Send or clear it there first.", { exact: true }).waitFor();
+  await terminalKey("Control+c");
   await prompt().fill("$");
   await send();
   await page.getByText(/Use native commands directly in the terminal/).waitFor();
