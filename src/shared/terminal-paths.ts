@@ -16,3 +16,27 @@ export function pathsInLine(text: string, root: string): { path: string; line?: 
   }
   return found;
 }
+
+// A plain http(s) URL in the output; trailing punctuation that ends a sentence is trimmed below.
+const URL_PATTERN = /\bhttps?:\/\/[^\s<>"'`─-╿]+/g;
+
+/** Plain web links in some output text (one logical line, which may span several soft-wrapped rows). */
+export function webLinksInText(text: string): { url: string; start: number; length: number }[] {
+  const found: { url: string; start: number; length: number }[] = [];
+  for (const match of text.matchAll(URL_PATTERN)) {
+    let url = match[0];
+    for (;;) {
+      const trimmed = url.replace(/[.,;:!?*_~]+$/, "");
+      // A closing bracket ends the link unless the link opened it (Wikipedia-style `Foo_(bar)`).
+      const close = /[)\]}]$/.exec(trimmed)?.[0];
+      const open = close === ")" ? "(" : close === "]" ? "[" : "{";
+      const unbalanced = close && trimmed.split(open).length <= trimmed.split(close).length - 1;
+      const next = unbalanced ? trimmed.slice(0, -1) : trimmed;
+      if (next === url) break;
+      url = next;
+    }
+    if (url.length <= "https://".length) continue;
+    found.push({ url, start: match.index ?? 0, length: url.length });
+  }
+  return found;
+}
