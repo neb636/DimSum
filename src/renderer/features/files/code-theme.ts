@@ -2,15 +2,21 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
 import { tagHighlighter, tags, type Tag } from "@lezer/highlight";
 
-/** Which syntax color each kind of token takes: shared by the editor and the code shown in lists. */
-const syntaxTokens: { tag: Tag | Tag[]; token: string; style?: Record<string, string> }[] = [
-  { tag: [tags.keyword, tags.modifier, tags.controlKeyword, tags.operatorKeyword], token: "keyword" },
+/**
+ * Which syntax color each kind of token takes: shared by the editor and the code shown in lists. The editor's color is
+ * `--wb-code-<token>` and, for the kinds a theme may slant, its font style `--wb-code-<token>-style`.
+ */
+const syntaxTokens: { tag: Tag | Tag[]; token: string; styled?: boolean; style?: Record<string, string> }[] = [
+  { tag: [tags.keyword, tags.modifier, tags.controlKeyword, tags.operatorKeyword], token: "keyword", styled: true },
   { tag: [tags.string, tags.special(tags.string), tags.regexp], token: "string" },
-  { tag: [tags.comment, tags.lineComment, tags.blockComment], token: "comment", style: { fontStyle: "italic" } },
+  { tag: [tags.comment, tags.lineComment, tags.blockComment], token: "comment", styled: true },
   { tag: [tags.number, tags.bool, tags.null, tags.atom], token: "number" },
-  { tag: [tags.typeName, tags.className, tags.namespace], token: "type" },
-  { tag: [tags.function(tags.variableName), tags.function(tags.propertyName), tags.macroName], token: "function" },
-  { tag: [tags.propertyName, tags.attributeName], token: "property" },
+  { tag: [tags.typeName, tags.className, tags.namespace], token: "type", styled: true },
+  { tag: [tags.function(tags.variableName), tags.function(tags.propertyName), tags.macroName], token: "function", styled: true },
+  { tag: tags.propertyName, token: "property" },
+  { tag: tags.attributeName, token: "attribute", styled: true },
+  { tag: tags.tagName, token: "tag" },
+  { tag: [tags.operator, tags.compareOperator, tags.arithmeticOperator, tags.logicOperator], token: "operator" },
   { tag: [tags.meta, tags.annotation, tags.processingInstruction], token: "meta" },
   { tag: [tags.heading, tags.strong], token: "keyword", style: { fontWeight: "600" } },
   { tag: tags.link, token: "function", style: { textDecoration: "underline" } },
@@ -19,7 +25,7 @@ const syntaxTokens: { tag: Tag | Tag[]; token: string; style?: Record<string, st
 /** Gives each token a `syntax-<token>` class, for code drawn outside an editor (colored by `--wb-syntax-*`). */
 export const syntaxClasses = tagHighlighter(syntaxTokens.map(({ tag, token }) => ({ tag, class: `syntax-${token}` })));
 
-/** Code surfaces stay dark inside the light chrome; every color is a theme token. */
+/** Code surfaces stay dark inside the light chrome; every color comes from the chosen syntax theme. */
 export const codeTheme = [
   EditorView.theme({
     "&": { color: "var(--wb-code-fg)", backgroundColor: "var(--wb-code-bg)", height: "100%", fontSize: "var(--wb-editor-font-size)" },
@@ -33,5 +39,7 @@ export const codeTheme = [
     "&.cm-focused": { outline: "none" },
     "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": { backgroundColor: "var(--wb-code-selection)" },
   }, { dark: true }),
-  syntaxHighlighting(HighlightStyle.define(syntaxTokens.map(({ tag, token, style }) => ({ tag, color: `var(--wb-code-${token})`, ...style })))),
+  syntaxHighlighting(HighlightStyle.define(syntaxTokens.map(({ tag, token, styled, style }) => ({
+    tag, color: `var(--wb-code-${token})`, ...(styled ? { fontStyle: `var(--wb-code-${token}-style)` } : {}), ...style,
+  })))),
 ];

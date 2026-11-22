@@ -1,0 +1,220 @@
+/*
+ * Syntax themes for the dark code surfaces: the file editor, commit diffs, Markdown preview and the code samples in
+ * Settings. Each sets the whole `--wb-code-*` palette for an element carrying `data-syntax-theme` (the window root
+ * takes the chosen one), so a sample can show its own theme inside a window drawn in another.
+ *
+ * Colors are taken from each theme's VS Code release and mapped onto the token kinds the editor highlights.
+ * `--wb-code-<token>-style` is the font style of that kind (normal unless the theme sets one).
+ * Ids match `syntaxThemes` in `state/preferences.ts`.
+ */
+
+/* Gatito (default): pawelgrzybek/gatito-theme */
+:root,
+[data-syntax-theme="gatito"] {
+  --wb-code-bg: #242b2e;
+  --wb-code-chrome: #171c1c;
+  --wb-code-border: #30373a;
+  --wb-code-fg: #d4d4d4;
+  --wb-code-muted: #808080;
+  --wb-code-gutter: #545454;
+  --wb-code-cursor: #d4d4d4;
+  --wb-code-selection: #ffffff3d;
+  --wb-code-active-line: #ffffff0f;
+  --wb-code-link: #6699cc;
+  --wb-code-keyword: #c594c5;
+  --wb-code-string: #99c794;
+  --wb-code-comment: #7f7f7f;
+  --wb-code-number: #f99157;
+  --wb-code-type: #fac863;
+  --wb-code-function: #6699cc;
+  --wb-code-property: #d8dee9;
+  --wb-code-meta: #5fb3b3;
+  --wb-code-tag: #eb606b;
+  --wb-code-attribute: #bb80b3;
+  --wb-code-operator: #5fb3b3;
+  --wb-code-keyword-style: normal;
+  --wb-code-comment-style: italic;
+  --wb-code-type-style: normal;
+  --wb-code-function-style: normal;
+  --wb-code-attribute-style: italic;
+}
+
+/* DimSum: the original palette, after Xcode's default dark */
+[data-syntax-theme="dimsum"] {
+  --wb-code-bg: #1c1c1f;
+  --wb-code-chrome: #222226;
+  --wb-code-border: #2e2e33;
+  --wb-code-fg: #e3e3e8;
+  --wb-code-muted: #8e8e96;
+  --wb-code-gutter: #55555d;
+  --wb-code-cursor: #6aa7ff;
+  --wb-code-selection: #3d5a8a8c;
+  --wb-code-active-line: #ffffff08;
+  --wb-code-link: #6aa7ff;
+  --wb-code-keyword: #ff7ab2;
+  --wb-code-string: #ff8170;
+  --wb-code-comment: #7f8c98;
+  --wb-code-number: #d9c97c;
+  --wb-code-type: #dabaff;
+  --wb-code-function: #67b7a4;
+  --wb-code-property: #4eb0cc;
+  --wb-code-meta: #ffa14f;
+  --wb-code-tag: #ff7ab2;
+  --wb-code-attribute: #4eb0cc;
+  --wb-code-operator: #e3e3e8;
+  --wb-code-keyword-style: normal;
+  --wb-code-comment-style: italic;
+  --wb-code-type-style: normal;
+  --wb-code-function-style: normal;
+  --wb-code-attribute-style: normal;
+}
+
+/* One Dark Pro: Binaryify/OneDark-Pro */
+[data-syntax-theme="one-dark-pro"] {
+  --wb-code-bg: #282c34;
+  --wb-code-chrome: #21252b;
+  --wb-code-border: #181a1f;
+  --wb-code-fg: #abb2bf;
+  --wb-code-muted: #7f848e;
+  --wb-code-gutter: #495162;
+  --wb-code-cursor: #528bff;
+  --wb-code-selection: #67769660;
+  --wb-code-active-line: #2c313c;
+  --wb-code-link: #61afef;
+  --wb-code-keyword: #c678dd;
+  --wb-code-string: #98c379;
+  --wb-code-comment: #7f848e;
+  --wb-code-number: #d19a66;
+  --wb-code-type: #e5c07b;
+  --wb-code-function: #61afef;
+  --wb-code-property: #e06c75;
+  --wb-code-meta: #d19a66;
+  --wb-code-tag: #e06c75;
+  --wb-code-attribute: #d19a66;
+  --wb-code-operator: #56b6c2;
+  --wb-code-keyword-style: normal;
+  --wb-code-comment-style: italic;
+  --wb-code-type-style: normal;
+  --wb-code-function-style: normal;
+  --wb-code-attribute-style: normal;
+}
+
+/* Dracula: dracula/visual-studio-code */
+[data-syntax-theme="dracula"] {
+  --wb-code-bg: #282a36;
+  --wb-code-chrome: #21222c;
+  --wb-code-border: #191a21;
+  --wb-code-fg: #f8f8f2;
+  --wb-code-muted: #8b93b8;
+  --wb-code-gutter: #6272a4;
+  --wb-code-cursor: #f8f8f2;
+  --wb-code-selection: #44475a;
+  --wb-code-active-line: #44475a75;
+  --wb-code-link: #8be9fd;
+  --wb-code-keyword: #ff79c6;
+  --wb-code-string: #f1fa8c;
+  --wb-code-comment: #6272a4;
+  --wb-code-number: #bd93f9;
+  --wb-code-type: #8be9fd;
+  --wb-code-function: #50fa7b;
+  --wb-code-property: #8be9fd;
+  --wb-code-meta: #50fa7b;
+  --wb-code-tag: #ff79c6;
+  --wb-code-attribute: #50fa7b;
+  --wb-code-operator: #ff79c6;
+  --wb-code-keyword-style: normal;
+  --wb-code-comment-style: normal;
+  --wb-code-type-style: italic;
+  --wb-code-function-style: normal;
+  --wb-code-attribute-style: italic;
+}
+
+/* Tokyo Night: tokyo-night/tokyo-night-vscode-theme */
+[data-syntax-theme="tokyo-night"] {
+  --wb-code-bg: #1a1b26;
+  --wb-code-chrome: #16161e;
+  --wb-code-border: #101014;
+  --wb-code-fg: #a9b1d6;
+  --wb-code-muted: #787c99;
+  --wb-code-gutter: #363b54;
+  --wb-code-cursor: #c0caf5;
+  --wb-code-selection: #515c7e4d;
+  --wb-code-active-line: #1e202e;
+  --wb-code-link: #7aa2f7;
+  --wb-code-keyword: #bb9af7;
+  --wb-code-string: #9ece6a;
+  --wb-code-comment: #51597d;
+  --wb-code-number: #ff9e64;
+  --wb-code-type: #2ac3de;
+  --wb-code-function: #7aa2f7;
+  --wb-code-property: #73daca;
+  --wb-code-meta: #7dcfff;
+  --wb-code-tag: #f7768e;
+  --wb-code-attribute: #bb9af7;
+  --wb-code-operator: #89ddff;
+  --wb-code-keyword-style: normal;
+  --wb-code-comment-style: italic;
+  --wb-code-type-style: normal;
+  --wb-code-function-style: normal;
+  --wb-code-attribute-style: italic;
+}
+
+/* Night Owl: sdras/night-owl-vscode-theme */
+[data-syntax-theme="night-owl"] {
+  --wb-code-bg: #011627;
+  --wb-code-chrome: #01111d;
+  --wb-code-border: #122d42;
+  --wb-code-fg: #d6deeb;
+  --wb-code-muted: #5f7e97;
+  --wb-code-gutter: #4b6479;
+  --wb-code-cursor: #80a4c2;
+  --wb-code-selection: #1d3b53;
+  --wb-code-active-line: #28707d29;
+  --wb-code-link: #82aaff;
+  --wb-code-keyword: #c792ea;
+  --wb-code-string: #ecc48d;
+  --wb-code-comment: #637777;
+  --wb-code-number: #f78c6c;
+  --wb-code-type: #ffcb8b;
+  --wb-code-function: #82aaff;
+  --wb-code-property: #baebe2;
+  --wb-code-meta: #c5e478;
+  --wb-code-tag: #caece6;
+  --wb-code-attribute: #c5e478;
+  --wb-code-operator: #7fdbca;
+  --wb-code-keyword-style: italic;
+  --wb-code-comment-style: italic;
+  --wb-code-type-style: normal;
+  --wb-code-function-style: italic;
+  --wb-code-attribute-style: italic;
+}
+
+/* One Monokai: azemoh/vscode-one-monokai */
+[data-syntax-theme="one-monokai"] {
+  --wb-code-bg: #282c34;
+  --wb-code-chrome: #21252b;
+  --wb-code-border: #181a1f;
+  --wb-code-fg: #abb2bf;
+  --wb-code-muted: #828997;
+  --wb-code-gutter: #495162;
+  --wb-code-cursor: #f8f8f0;
+  --wb-code-selection: #3e4451;
+  --wb-code-active-line: #383e4a;
+  --wb-code-link: #61afef;
+  --wb-code-keyword: #e06c75;
+  --wb-code-string: #e5c07b;
+  --wb-code-comment: #676f7d;
+  --wb-code-number: #c678dd;
+  --wb-code-type: #61afef;
+  --wb-code-function: #98c379;
+  --wb-code-property: #56b6c2;
+  --wb-code-meta: #d19a66;
+  --wb-code-tag: #e06c75;
+  --wb-code-attribute: #98c379;
+  --wb-code-operator: #e06c75;
+  --wb-code-keyword-style: normal;
+  --wb-code-comment-style: normal;
+  --wb-code-type-style: normal;
+  --wb-code-function-style: normal;
+  --wb-code-attribute-style: normal;
+}

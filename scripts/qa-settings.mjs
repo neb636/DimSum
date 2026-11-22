@@ -1,4 +1,4 @@
-// Settings: the full-window sheet, theme (light, dark, system), terminal and editor fonts, and composer menus.
+// Settings: the full-window sheet, theme (light, dark, system), terminal and editor fonts, syntax themes, and composer menus.
 import { _electron as electron } from "playwright";
 import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -20,6 +20,8 @@ await writeFile(join(directory, "workbench-state.json"), JSON.stringify({
     { id: "file", workspaceId: "qa", type: "file", title: "index.ts", state: { root, path: "index.ts" } },
   ] }],
   activeWorkspaceId: "qa", layout: { rightCollapsed: true, leftCollapsed: false }, personas: [], instructionOptions: [],
+  // Saved while DimSum Dark was the only syntax theme: it opens in the new default, Gatito.
+  preferences: { theme: "system", editor: { fontFamily: "system", fontSize: 13, syntaxTheme: "dimsum-dark" } },
 }));
 const missing = join(directory, "missing-cli");
 const launch = () => electron.launch({ args: ["."], env: qaEnvironment({ WORKBENCH_USER_DATA_DIR: directory, WORKBENCH_CODEX_PATH: missing, WORKBENCH_CLAUDE_PATH: missing }) });
@@ -59,6 +61,21 @@ try {
   await until(async () => (await scheme()) === "dark" && await dark(), "dark theme");
   await page.waitForTimeout(500);
   await page.screenshot({ path: join(shots, "04-appearance-dark.png") });
+
+  // Syntax themes: Gatito by default, each sample in its own colours; Tokyo Night chosen.
+  const rootTheme = () => page.evaluate(() => [document.documentElement.dataset.syntaxTheme, document.defaultView.getComputedStyle(document.documentElement).getPropertyValue("--wb-code-bg").trim()]);
+  assert.deepEqual(await rootTheme(), ["gatito", "#242b2e"]);
+  assert.equal(await dialog.locator(".syntax-option").count(), 7);
+  assert.equal(await dialog.getByRole("radio", { name: /^Gatito/ }).isChecked(), true);
+  const sampleBg = (name) => dialog.locator(".syntax-option", { hasText: name }).locator(".code-sample").evaluate((element) => element.ownerDocument.defaultView.getComputedStyle(element).backgroundColor);
+  assert.equal(await sampleBg("Dracula"), "rgb(40, 42, 54)");
+  assert.equal(await sampleBg("Night Owl"), "rgb(1, 22, 39)");
+  await dialog.locator(".syntax-option", { hasText: "Tokyo Night" }).scrollIntoViewIfNeeded();
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: join(shots, "04b-syntax-themes.png") });
+  await dialog.locator(".syntax-option", { hasText: "Tokyo Night" }).click();
+  await until(async () => (await rootTheme())[0] === "tokyo-night", "tokyo night chosen");
+  assert.equal((await rootTheme())[1], "#1a1b26");
 
   // Fonts: the terminal and editor follow.
   await dialog.getByRole("button", { name: /Terminal font$/ }).click();
@@ -103,11 +120,15 @@ try {
   await page.locator(".cm-content").waitFor();
   const editorFont = await page.locator(".cm-editor").evaluate((element) => element.ownerDocument.defaultView.getComputedStyle(element).fontSize);
   assert.equal(editorFont, "16px");
+  assert.equal(await page.locator(".cm-editor").evaluate((element) => element.ownerDocument.defaultView.getComputedStyle(element).backgroundColor), "rgb(26, 27, 38)");
+  await until(() => page.locator(".cm-line span").filter({ hasText: /^function$/ }).count().then(Boolean), "highlighted keyword");
+  const keyword = await page.locator(".cm-line span").filter({ hasText: /^function$/ }).first().evaluate((element) => element.ownerDocument.defaultView.getComputedStyle(element).color);
+  assert.equal(keyword, "rgb(187, 154, 247)");
   await page.screenshot({ path: join(shots, "12-editor.png") });
 
   await until(async () => (await saved()).preferences?.terminal?.fontSize === 15, "preferences saved");
   const preferences = (await saved()).preferences;
-  assert.deepEqual(preferences, { theme: "dark", terminal: { fontFamily: "menlo", fontSize: 15 }, editor: { fontFamily: "system", fontSize: 16, syntaxTheme: "dimsum-dark" }, composer: { hiddenMenus: ["persona"] } });
+  assert.deepEqual(preferences, { theme: "dark", terminal: { fontFamily: "menlo", fontSize: 15 }, editor: { fontFamily: "system", fontSize: 16, syntaxTheme: "tokyo-night" }, composer: { hiddenMenus: ["persona"] } });
   assert.deepEqual(errors, []);
   await app.close();
 

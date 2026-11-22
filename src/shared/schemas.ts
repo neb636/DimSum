@@ -95,8 +95,8 @@ const fontSizeSchema = z.number().int().min(8).max(32);
 export const preferencesSchema = z.object({
   theme: themePreferenceSchema.default("system"),
   terminal: z.object({ fontFamily: z.string().max(64).default("system"), fontSize: fontSizeSchema.default(13) }).default({ fontFamily: "system", fontSize: 13 }),
-  editor: z.object({ fontFamily: z.string().max(64).default("system"), fontSize: fontSizeSchema.default(13), syntaxTheme: z.string().max(64).default("dimsum-dark") })
-    .default({ fontFamily: "system", fontSize: 13, syntaxTheme: "dimsum-dark" }),
+  editor: z.object({ fontFamily: z.string().max(64).default("system"), fontSize: fontSizeSchema.default(13), syntaxTheme: z.string().max(64).default("gatito") })
+    .default({ fontFamily: "system", fontSize: 13, syntaxTheme: "gatito" }),
   composer: z.object({ hiddenMenus: z.array(z.string().max(200)).max(200).default([]) }).default({ hiddenMenus: [] }),
 });
 

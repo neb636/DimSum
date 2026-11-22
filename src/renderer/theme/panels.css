@@ -133,6 +133,8 @@
 .search-line .syntax-function { color: var(--wb-syntax-function); }
 .search-line .syntax-property { color: var(--wb-syntax-property); }
 .search-line .syntax-meta { color: var(--wb-syntax-meta); }
+.search-line .syntax-tag { color: var(--wb-syntax-keyword); }
+.search-line .syntax-attribute { color: var(--wb-syntax-property); }
 .search-line code mark { border-radius: 2px; background: var(--wb-accent-soft); color: var(--wb-accent-on-soft); }
 
 /* Source control: branch switcher. */

@@ -28,12 +28,13 @@ function ThemePreview({ theme }: { theme: ThemePreference }) {
   return <div className="theme-preview is-split"><WindowSketch tone="light" /><WindowSketch tone="dark" /></div>;
 }
 
-/** A few lines of code in the editor's font, coloured by the syntax theme. */
-function CodeSample({ fontFamily, fontSize }: { fontFamily: string; fontSize: number }) {
-  return <pre className="code-sample" style={{ fontFamily: monoFontStack(fontFamily), fontSize }} aria-hidden="true">
-    <span className="syntax-comment">{"// Greets each guest by name"}</span>{"\n"}
-    <span className="syntax-keyword">export function</span> <span className="syntax-function">greet</span>(guests: <span className="syntax-type">string</span>[]) {"{"}{"\n"}
-    {"  "}<span className="syntax-keyword">return</span> guests.<span className="syntax-property">map</span>((name) =&gt; <span className="syntax-string">`Hello, ${"{"}name{"}"}`</span>).<span className="syntax-property">slice</span>(<span className="syntax-number">0</span>, <span className="syntax-number">12</span>);{"\n"}
+/** A few lines of code in the editor's font, coloured by one syntax theme. */
+function CodeSample({ theme, fontFamily, fontSize }: { theme: string; fontFamily: string; fontSize: number }) {
+  return <pre className="code-sample" data-syntax-theme={theme} style={{ fontFamily: monoFontStack(fontFamily), fontSize }} aria-hidden="true">
+    <span className="syntax-comment">{"// Greet each guest by name"}</span>{"\n"}
+    <span className="syntax-keyword">function</span> <span className="syntax-function">greet</span>(names: <span className="syntax-type">string</span>[]) {"{"}{"\n"}
+    {"  "}<span className="syntax-keyword">const</span> max <span className="syntax-operator">=</span> names.<span className="syntax-property">length</span> <span className="syntax-operator">*</span> <span className="syntax-number">2</span>;{"\n"}
+    {"  "}<span className="syntax-keyword">return</span> names.<span className="syntax-function">map</span>((n) <span className="syntax-operator">=&gt;</span> <span className="syntax-string">`Hi ${"{"}n{"}"}`</span>);{"\n"}
     {"}"}
   </pre>;
 }
@@ -64,10 +65,10 @@ export function AppearanceSettings() {
     <SettingsCard title="File editor" description="Files opened in a tab, and commit diffs." icon={<FileIcon size={16} />}>
       <SettingsRow label="Font"><FontSelect label="Editor font" value={editor.fontFamily} onChange={(fontFamily) => updatePreferences({ editor: { ...editor, fontFamily } })} /></SettingsRow>
       <SettingsRow label="Size"><FontSizeField label="Editor font size" value={editor.fontSize} onChange={(fontSize) => updatePreferences({ editor: { ...editor, fontSize } })} /></SettingsRow>
-      <SettingsRow label="Syntax theme" help="More themes are on the way." />
+      <SettingsRow label="Syntax theme" help="Colours for the file editor, commit diffs and Markdown previews." />
       <RadioGroup aria-label="Syntax theme" className="syntax-options" value={editor.syntaxTheme} onChange={(syntaxTheme) => updatePreferences({ editor: { ...editor, syntaxTheme } })}>
         {syntaxThemes.map((theme) => <Radio key={theme.id} value={theme.id} className="syntax-option">
-          <CodeSample fontFamily={editor.fontFamily} fontSize={editor.fontSize} />
+          <CodeSample theme={theme.id} fontFamily={editor.fontFamily} fontSize={editor.fontSize} />
           <span className="theme-option-label"><span className="radio-mark" aria-hidden="true"><CheckIcon size={10} /></span>{theme.label}<small>{theme.description}</small></span>
         </Radio>)}
       </RadioGroup>
