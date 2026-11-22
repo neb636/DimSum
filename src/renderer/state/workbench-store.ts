@@ -32,6 +32,8 @@ interface WorkbenchStore extends PersistedState {
   removeWorkspace: (workspaceId: string) => void;
   selectWorkspace: (workspaceId: string) => void;
   setWorkspaceIcon: (workspaceId: string, icon: string | undefined) => void;
+  /** Web links clicked in this workspace's terminals open from now on without asking. */
+  allowWebLinks: (workspaceId: string) => void;
   createView: (workspaceId: string, type: string, title: string, state?: unknown) => string;
   selectView: (workspaceId: string, viewId: string) => void;
   closeView: (workspaceId: string, viewId: string) => void;
@@ -159,6 +161,9 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => ({
   selectWorkspace: (workspaceId) => set({ activeWorkspaceId: workspaceId }),
   setWorkspaceIcon: (workspaceId, icon) => set((state) => ({
     workspaces: mapWorkspace(state.workspaces, workspaceId, (workspace) => ({ ...workspace, icon })),
+  })),
+  allowWebLinks: (workspaceId) => set((state) => ({
+    workspaces: mapWorkspace(state.workspaces, workspaceId, (workspace) => ({ ...workspace, opensWebLinks: true })),
   })),
   updateViewState: (workspaceId, viewId, patch) => set((state) => ({
     workspaces: mapWorkspace(state.workspaces, workspaceId, (workspace) => ({

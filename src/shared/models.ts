@@ -32,6 +32,8 @@ export interface Workspace {
   icon?: string;
   /** Global or shared instructions the person turned off in this workspace. */
   disabledInstructionIds?: string[];
+  /** The person said yes to opening a web link from this workspace's terminals, so later links open without asking. */
+  opensWebLinks?: boolean;
   views: WorkbenchView[];
   activeViewId?: string;
 }

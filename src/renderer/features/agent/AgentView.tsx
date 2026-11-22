@@ -65,7 +65,7 @@ export function AgentView({ view, workspace }: ViewComponentProps) {
   };
   const conversation = savedConversation(state);
   const top = runtime
-    ? <div className="terminal-card"><TerminalSurface controller={runtime.controller}
+    ? <div className="terminal-card"><TerminalSurface controller={runtime.controller} workspaceId={workspace.id}
       root={state.cwd ?? workspace.path} onOpenPath={(path, line) => void services.commands.execute("file.open", { workspaceId: workspace.id, root: state.cwd ?? workspace.path, path, line, preview: true })} /></div>
     : conversation ? <SessionResume workspaceId={workspace.id} viewId={view.id} location={state.cwd ?? workspace.path}
         provider={providers.find((p) => p.id === conversation.providerId)} />
