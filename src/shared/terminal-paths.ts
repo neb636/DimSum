@@ -18,15 +18,19 @@ export function pathsInLine(text: string, root: string): { path: string; line?: 
 }
 
 // A plain http(s) URL in the output; trailing punctuation that ends a sentence is trimmed below.
-const URL_PATTERN = /\bhttps?:\/\/[^\s<>"'`─-╿]+/g;
+const URL_PATTERN = /(?<![A-Za-z0-9])https?:\/\/[^\s<>"'`─-╿]+/g;
 
 /** Plain web links in some output text (one logical line, which may span several soft-wrapped rows). */
 export function webLinksInText(text: string): { url: string; start: number; length: number }[] {
   const found: { url: string; start: number; length: number }[] = [];
   for (const match of text.matchAll(URL_PATTERN)) {
     let url = match[0];
+    const before = text.slice(0, match.index ?? 0);
     for (;;) {
-      const trimmed = url.replace(/[.,;:!?*_~]+$/, "");
+      let trimmed = url.replace(/[.,;:!?]+$/, "");
+      // `*`, `_` and `~` can end a real URL; they're dropped only as markup the URL is wrapped in (`**https://…**`).
+      const markup = /[*_~]+$/.exec(trimmed)?.[0];
+      if (markup && before.endsWith(markup)) trimmed = trimmed.slice(0, -markup.length);
       // A closing bracket ends the link unless the link opened it (Wikipedia-style `Foo_(bar)`).
       const close = /[)\]}]$/.exec(trimmed)?.[0];
       const open = close === ")" ? "(" : close === "]" ? "[" : "{";
