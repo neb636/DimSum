@@ -55,6 +55,7 @@ const api: WorkbenchApi = {
   app: {
     storageMaintenance: (prune) => ipcRenderer.invoke(IPC.storageMaintenance, prune),
     revokeExecutionTrust: () => ipcRenderer.invoke(IPC.revokeExecutionTrust),
+    setTheme: (theme) => ipcRenderer.invoke(IPC.appSetTheme, theme),
     textMenu: () => ipcRenderer.send(IPC.appTextMenu),
     onMenuCommand: (listener) => {
       const wrapped = (_event: Electron.IpcRendererEvent, command: MenuCommand) => listener(command);

@@ -2,8 +2,8 @@ import { assertInputBudget } from "../shared/input-budget";
 import { app } from "electron";
 import { mkdirSync, promises as fs, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import type { PersistedState } from "../shared/models";
-import { migratePersistedState, persistedStateSchema, seedDefaultInstructions } from "../shared/schemas";
+import type { PersistedState, ThemePreference } from "../shared/models";
+import { migratePersistedState, persistedStateSchema, seedDefaultInstructions, themePreferenceSchema } from "../shared/schemas";
 import { mergeAdoptedPersonalFiles, newlyAdopted } from "./worktree-adoption";
 import { moveInstructionsToFiles } from "./instruction-migration";
 
@@ -63,6 +63,16 @@ export async function loadState(strict = false): Promise<PersistedState> {
     preserveExistingState = true;
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(`Could not load saved workbench at ${statePath()}. The existing profile was preserved. ${reason}`, { cause: error });
+  }
+}
+
+/** The saved appearance, read before the window opens so its first frame is in the right theme. "system" when unreadable. */
+export async function savedTheme(): Promise<ThemePreference> {
+  try {
+    const data = JSON.parse(await fs.readFile(statePath(), "utf8")) as { preferences?: { theme?: unknown } };
+    return themePreferenceSchema.catch("system").parse(data.preferences?.theme);
+  } catch {
+    return "system";
   }
 }
 

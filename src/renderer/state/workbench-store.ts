@@ -259,6 +259,7 @@ function persistedSnapshot(state: WorkbenchStore): PersistedState {
     layout: state.layout,
     defaultAgentProviderId: state.defaultAgentProviderId,
     featureSettings: state.featureSettings,
+    preferences: state.preferences,
   };
 }
 

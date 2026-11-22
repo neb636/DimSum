@@ -90,6 +90,16 @@ export const layoutStateSchema = z.object({
   rightPanel: z.string().optional(),
 });
 
+export const themePreferenceSchema = z.enum(["light", "dark", "system"]);
+const fontSizeSchema = z.number().int().min(8).max(32);
+export const preferencesSchema = z.object({
+  theme: themePreferenceSchema.default("system"),
+  terminal: z.object({ fontFamily: z.string().max(64).default("system"), fontSize: fontSizeSchema.default(13) }).default({ fontFamily: "system", fontSize: 13 }),
+  editor: z.object({ fontFamily: z.string().max(64).default("system"), fontSize: fontSizeSchema.default(13), syntaxTheme: z.string().max(64).default("dimsum-dark") })
+    .default({ fontFamily: "system", fontSize: 13, syntaxTheme: "dimsum-dark" }),
+  composer: z.object({ hiddenMenus: z.array(z.string().max(200)).max(200).default([]) }).default({ hiddenMenus: [] }),
+});
+
 export const persistedStateSchema = z.object({
   workspaces: z.array(workspaceSchema).max(1000).default([]),
   activeWorkspaceId: z.string().optional(),
@@ -99,6 +109,7 @@ export const persistedStateSchema = z.object({
   layout: layoutStateSchema.default({ leftCollapsed: false, rightCollapsed: false }),
   defaultAgentProviderId: z.string().optional(),
   featureSettings: z.record(z.string(), z.unknown()).optional(),
+  preferences: preferencesSchema.optional(),
 });
 
 const legacyInstructionSchema = z.object({ id: z.string(), workspaceId: z.string(), content: z.string(), enabled: z.boolean() });
