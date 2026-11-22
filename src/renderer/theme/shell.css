@@ -164,6 +164,8 @@
 /* The tree's hover actions take no width until their row is hovered or focused; they stay in the accessibility tree. */
 .workspace-tree .row-action:not([aria-expanded="true"]) { width: 0; margin: 0; overflow: hidden; }
 .workspace-tree [role="row"][data-hovered] .row-action, .workspace-tree [role="row"][data-focus-visible] .row-action, .workspace-tree [role="row"]:focus-within .row-action { width: var(--wb-control-sm); }
+/* A pinned action is always visible, not only on hover. */
+.workspace-tree [role="row"] .row-action.is-pinned { width: var(--wb-control-sm); opacity: 1; }
 
 .sidebar-empty { padding: var(--wb-space-2) var(--wb-space-4); color: var(--wb-text-secondary); line-height: 18px; }
 .sidebar-footer { display: grid; flex: none; gap: 2px; padding: var(--wb-space-2); border-top: 1px solid var(--wb-border-subtle); }

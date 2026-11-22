@@ -124,7 +124,7 @@ function WorkspaceRow({ workspace, worktrees, activeWorkspaceId, statuses, menu 
           {!files && !grouped && <small><WorkspaceMeta workspace={workspace} /></small>}
         </span>
         {!isExpanded && <Hidden sessions={sessions} statuses={statuses} />}
-        {canBranch && <IconButton label="New worktree" className="row-action" onPress={() => void services.commands.execute("worktree.new", { workspaceId: workspace.id })}><PlusIcon size={13} /></IconButton>}
+        {canBranch && <IconButton label="New worktree" className="row-action is-pinned" onPress={() => void services.commands.execute("worktree.new", { workspaceId: workspace.id })}><PlusIcon size={13} /></IconButton>}
         {menu.overflow(workspaceActions(workspace), workspace.name)}
       </div>}
     </TreeItemContent>
