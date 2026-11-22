@@ -73,11 +73,18 @@ export function detectCliScreen(kind: "codex" | "claude") {
         if (line.trim() && !/^\s{2}/.test(line)) break;
       }
     }
+    // A draft taller than the terminal has pushed the prompt off the top. The input was empty before the paste, so the
+    // end of the pasted text under the cursor (the last piece of a wrapped line) is the draft, filling the screen.
+    const pastedEnd = screen.pasted?.replace(/\r\n/g, "\n").trimEnd().split("\n").at(-1)?.trim() ?? "";
+    const overflow = !match && Boolean(screen.cursorLine.trim()) && pastedEnd.endsWith(screen.cursorLine.trim());
+    if (overflow) promptRow = 0;
     // What the CLI drew, without the text typed into its input: a draft that says "sign in" or "Thinking..." is not
     // the CLI asking or working. Only after something was typed or pasted (a question drawn after Enter must not hide
     // under an earlier "›" in the transcript), and a numbered line is a menu's selected option, part of a question.
-    const typed = match && screen.inputWasEdited && !/^\d+\.\s/.test(match[1]);
-    const drawn = typed ? lines.filter((_, row) => row < promptRow || row > screen.cursorY).slice(-12).join("\n") : bottom;
+    // The draft is masked inside the same bottom rows, never replaced by older transcript text from further up.
+    const typed = overflow || (match && screen.inputWasEdited && !/^\d+\.\s/.test(match[1]));
+    const start = Math.max(0, lines.length - 12);
+    const drawn = typed ? lines.slice(start).filter((_, index) => start + index < promptRow || start + index > screen.cursorY).join("\n") : bottom;
     // Codex also reports it itself (see its adapter's reportedState), which survives a redesign of its spinner.
     const working = kind === "codex"
       ? screen.reportedState === "working" || /esc to (?:interrupt|cancel)|• (?:Working|Thinking)|(?:Working|Thinking)\s*[.…]|Waiting for startup/i.test(drawn)
@@ -96,7 +103,7 @@ export function detectCliScreen(kind: "codex" | "claude") {
       : !screen.inputWasEdited && ((screen.cursorCellDim && !/^\d+\.\s/.test(match[1])) || /^Try\s+["“].+["”]$/.test(match[1]) || claudeQueue));
     queuedPrompt = kind === "claude" && (Boolean(placeholder && claudeQueue) || /(?:^|\n)\s*ctrl\+enter to send now\s*(?:\n|$)/.test(bottom));
     const empty = Boolean(match && !multiline && (!match[1].trim() || placeholder));
-    const inputState = !match || !screen.bracketedPaste ? "unavailable" : empty ? "empty" : "draft";
+    const inputState = !(match || overflow) || !screen.bracketedPaste ? "unavailable" : empty ? "empty" : "draft";
     // Transcript text can mention "sign in" or "select an option"; a decision UI replaces the empty input prompt.
     // Codex's update picker ("1. Update now · 2. Skip · enter continue · esc skip") is a decision too.
     if (!empty && /trust (?:this|the)|allow once|allow always|yes, (?:proceed|allow)|do you want to (?:proceed|allow)|would you like to (?:run|proceed)|enter to confirm|enter continue|esc skip|skip until next version|select an option|sign in|log in|choose.*account/i.test(drawn)) {
@@ -107,7 +114,7 @@ export function detectCliScreen(kind: "codex" | "claude") {
     if (queuedPrompt) return result("working", inputState === "empty", "queued", empty ? "Queued in the CLI until it can take it. Press Up in the terminal to edit it."
       : "A prompt is queued in the CLI and a draft is in the terminal. Send or clear the draft there first.", inputState);
     if (working) return result("working", inputState === "empty", "working", empty ? "Submit using the CLI’s native queue or steering." : "Clear the native draft or use the terminal input.", inputState);
-    if (match) return result("ready", inputState === "empty", empty ? "prompt" : "native-draft", !screen.bracketedPaste ? "Use the terminal; paste mode is not available." : empty ? "Ready for a prompt." : "A draft is already in the terminal. Send or clear it there first.", inputState);
+    if (match || overflow) return result("ready", inputState === "empty", empty ? "prompt" : "native-draft", !screen.bracketedPaste ? "Use the terminal; paste mode is not available." : empty ? "Ready for a prompt." : "A draft is already in the terminal. Send or clear it there first.", inputState);
     return result("unknown", false, "unmatched", "Use the terminal until its prompt is recognized.");
   };
 }
