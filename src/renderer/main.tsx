@@ -4,6 +4,7 @@ import { registerFirstPartyContributions } from "./app/register-first-party";
 import { WorkbenchShell } from "./shell/WorkbenchShell";
 import { applyPreferences } from "./state/preferences";
 import "./theme/tokens.css";
+import "./theme/syntax-themes.css";
 import "./theme/base.css";
 import "./theme/shell.css";
 import "./theme/composer.css";

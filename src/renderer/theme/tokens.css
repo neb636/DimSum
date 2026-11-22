@@ -151,24 +151,7 @@
   --wb-lightbox-edge: #ffffff1f;
   --wb-shadow-lightbox: 0 32px 80px -16px #000000b3;
 
-  /* Dark code surfaces */
-  --wb-code-bg: #1c1c1f;
-  --wb-code-chrome: #222226;
-  --wb-code-border: #2e2e33;
-  --wb-code-fg: #e3e3e8;
-  --wb-code-muted: #8e8e96;
-  --wb-code-gutter: #55555d;
-  --wb-code-cursor: #6aa7ff;
-  --wb-code-selection: #3d5a8a8c;
-  --wb-code-active-line: #ffffff08;
-  --wb-code-keyword: #ff7ab2;
-  --wb-code-string: #ff8170;
-  --wb-code-comment: #7f8c98;
-  --wb-code-number: #d9c97c;
-  --wb-code-type: #dabaff;
-  --wb-code-function: #67b7a4;
-  --wb-code-property: #4eb0cc;
-  --wb-code-meta: #ffa14f;
+  /* Dark code surfaces (`--wb-code-bg`, `--wb-code-keyword`, …) come from the chosen syntax theme: syntax-themes.css */
 
   /* Syntax colors for code shown on panel surfaces (search results); the dark editor keeps its own */
   --wb-syntax-keyword: #ad3da4;

@@ -272,14 +272,15 @@
 .terminal-sample-branch { color: var(--wb-terminal-magenta); }
 .terminal-sample-pass { color: var(--wb-terminal-green); }
 .terminal-sample-muted { color: var(--wb-code-muted); }
-.syntax-options { display: grid; padding: var(--wb-space-1) 0 var(--wb-space-4); }
-.code-sample .syntax-keyword { color: var(--wb-code-keyword); }
+.syntax-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--wb-space-3); padding: var(--wb-space-1) 0 var(--wb-space-4); }
+.code-sample .syntax-keyword { color: var(--wb-code-keyword); font-style: var(--wb-code-keyword-style); }
 .code-sample .syntax-string { color: var(--wb-code-string); }
-.code-sample .syntax-comment { color: var(--wb-code-comment); font-style: italic; }
+.code-sample .syntax-comment { color: var(--wb-code-comment); font-style: var(--wb-code-comment-style); }
 .code-sample .syntax-number { color: var(--wb-code-number); }
-.code-sample .syntax-type { color: var(--wb-code-type); }
-.code-sample .syntax-function { color: var(--wb-code-function); }
+.code-sample .syntax-type { color: var(--wb-code-type); font-style: var(--wb-code-type-style); }
+.code-sample .syntax-function { color: var(--wb-code-function); font-style: var(--wb-code-function-style); }
 .code-sample .syntax-property { color: var(--wb-code-property); }
+.code-sample .syntax-operator { color: var(--wb-code-operator); }
 
 /* Composer menu switches */
 .settings-switch-row { justify-content: flex-start; outline: none; cursor: default; }

@@ -25,4 +25,4 @@ Configuration is plain JSON in three layers. Later layers win for options with t
 
 ## What files can't change
 
-Personas, appearance (theme, terminal and editor fonts), which composer menus show, keyboard shortcuts, the workspace list, open views, drafts and workspace trust live in DimSum's own profile, not in files you should edit. Tell the person to change them in the app (personas: **Settings ▸ Personas**; theme and fonts: **Settings ▸ Appearance**; composer menus: **Settings ▸ Prompt composer**; trust: DimSum's **Trust workspace?** prompt).
+Personas, appearance (theme, terminal and editor fonts, syntax theme), which composer menus show, keyboard shortcuts, the workspace list, open views, drafts and workspace trust live in DimSum's own profile, not in files you should edit. Tell the person to change them in the app (personas: **Settings ▸ Personas**; theme, fonts and syntax theme: **Settings ▸ Appearance**; composer menus: **Settings ▸ Prompt composer**; trust: DimSum's **Trust workspace?** prompt).

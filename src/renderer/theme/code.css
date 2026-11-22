@@ -82,7 +82,7 @@
 .markdown-preview ul, .markdown-preview ol { padding-left: 1.8em; }
 .markdown-preview li + li { margin-top: 0.25em; }
 .markdown-preview li > input[type="checkbox"] { margin: 0 0.4em 0 -1.3em; vertical-align: middle; }
-.markdown-preview a { color: var(--wb-code-cursor); text-decoration: none; }
+.markdown-preview a { color: var(--wb-code-link); text-decoration: none; }
 .markdown-preview a:hover { text-decoration: underline; }
 .markdown-preview code { padding: 0.15em 0.4em; border-radius: var(--wb-radius-xs); background: var(--wb-code-control); font-family: var(--wb-font-mono); font-size: 0.88em; }
 .markdown-preview pre { padding: var(--wb-space-3) var(--wb-space-4); overflow: auto; border-radius: var(--wb-radius-sm); background: var(--wb-code-chrome); border: 1px solid var(--wb-code-border); line-height: 1.5; }

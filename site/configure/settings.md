@@ -17,7 +17,7 @@ Extensions can add their own groups to this section.
 
 - **Theme**: **Light**, **Dark**, or **System**, which follows your Mac's appearance (System Settings ▸ Appearance) and switches when it does. Terminals and the file editor stay dark in every theme.
 - **Terminal**: the font and size of terminals and agent sessions. Open terminals change at once.
-- **File editor**: the font and size of files opened in a tab and of commit diffs, and the syntax theme. There is one syntax theme, DimSum Dark, for now.
+- **File editor**: the font and size of files opened in a tab and of commit diffs, and the syntax theme, which also colors Markdown previews. Choose from **Gatito** (the default), **One Dark Pro**, **Dracula**, **Tokyo Night**, **Night Owl**, **One Monokai** and **DimSum**, DimSum's original palette. Each is DimSum's closest match to the VS Code theme of that name; each card shows a sample in its colors.
 
 The font lists show the monospace fonts installed on your Mac; **System (SF Mono)** is the default.
 
