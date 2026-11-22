@@ -5,12 +5,15 @@ import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import type { AgentSessionController, TerminalSessionController } from "../../core/session-provider-registry";
 import { pathsInLine } from "../../../shared/terminal-paths";
+import { openWebLink } from "./web-links";
 
 export interface TerminalSurfaceHandle { focus: () => void; }
 
-export function TerminalSurface({ controller, ref, root, onOpenPath }: {
+export function TerminalSurface({ controller, ref, workspaceId, root, onOpenPath }: {
   controller: AgentSessionController | TerminalSessionController;
   ref?: Ref<TerminalSurfaceHandle>;
+  /** The workspace whose terminal this is: it remembers whether web links in the output may open without asking. */
+  workspaceId: string;
   /** The folder the session runs in: paths in the output that are its files become links (`onOpenPath` opens them). */
   root?: string;
   onOpenPath?: (path: string, line?: number) => void;
@@ -29,7 +32,11 @@ export function TerminalSurface({ controller, ref, root, onOpenPath }: {
     const styles = getComputedStyle(document.documentElement);
     const token = (name: string) => styles.getPropertyValue(name).trim();
     const terminal = new Terminal({ cursorBlink: true, fontFamily: token("--wb-font-mono"), fontSize: 13, lineHeight: 1.25,
-      scrollback: 2000, theme: {
+      scrollback: 2000,
+      // Hyperlinks the program prints (OSC 8). xterm's own handler asks with `confirm` and opens a blank window it then
+      // navigates, which the main process refuses, so the link never opened.
+      linkHandler: { activate: (_event, uri) => void openWebLink(workspaceId, uri) },
+      theme: {
         background: token("--wb-terminal-bg"), foreground: token("--wb-terminal-fg"), cursor: token("--wb-terminal-cursor"),
         selectionBackground: token("--wb-terminal-selection"), scrollbarSliderBackground: token("--wb-code-border"), black: token("--wb-terminal-black"), red: token("--wb-terminal-red"),
         green: token("--wb-terminal-green"), yellow: token("--wb-terminal-yellow"), blue: token("--wb-terminal-blue"),
@@ -106,7 +113,7 @@ export function TerminalSurface({ controller, ref, root, onOpenPath }: {
       host.removeEventListener("wheel", wheel, { capture: true }); host.removeEventListener("pointerdown", pointer, { capture: true });
       host.removeEventListener("keydown", key, { capture: true }); terminal.dispose();
     };
-  }, [controller, root]);
+  }, [controller, root, workspaceId]);
   return <><div className="terminal-host" ref={hostRef} aria-label="Native CLI terminal" {...menu.bind(() => {
     const terminal = terminalRef.current;
     return [

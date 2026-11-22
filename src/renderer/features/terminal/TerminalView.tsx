@@ -22,6 +22,6 @@ export function TerminalView({ workspace, view }: ViewComponentProps) {
   const status = error || (!runtime ? "Starting…" : runtime.exitCode !== undefined ? "Exited" : "Running");
   return <section className="terminal-view" aria-label="Terminal session">
     <div className="view-toolbar"><div className="view-toolbar-title"><TerminalIcon size={15} />Local terminal</div><div className="session-status">{status}</div></div>
-    {runtime && <TerminalSurface controller={runtime.controller} />}
+    {runtime && <TerminalSurface controller={runtime.controller} workspaceId={workspace.id} />}
   </section>;
 }
