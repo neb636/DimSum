@@ -7,7 +7,7 @@ import { Terminal } from "@xterm/headless";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import type { PtyCreateOptions, PtySnapshot, SessionResource } from "../shared/models";
 import { IPC } from "../shared/ipc";
-import { agentGuidePath, dimsumHome } from "./dimsum-home";
+import { agentGuidePath, agentReferencePath, dimsumHome } from "./dimsum-home";
 import { endProcessTree } from "./processes";
 
 interface ManagedPty {
@@ -33,10 +33,11 @@ const DATA_BATCH_MS = 16;
 /** The resource manager's view of a running session, before its processes are measured. */
 export type ListedSession = Pick<SessionResource, "sessionId" | "kind" | "viewId" | "label" | "pid" | "cwd" | "exited"> & { owner: WebContents };
 
-/** Every terminal and agent CLI learns where the app keeps its own files, so an agent can find the extension guide. */
+/** Every terminal and agent CLI learns where the app keeps its own files, so an agent can find the guide and reference. */
 function appEnvironment(): Record<string, string> {
   const guide = agentGuidePath();
-  return { DIMSUM_HOME: dimsumHome(), ...(guide ? { DIMSUM_GUIDE: guide } : {}) };
+  const reference = agentReferencePath();
+  return { DIMSUM_HOME: dimsumHome(), ...(guide ? { DIMSUM_GUIDE: guide } : {}), ...(reference ? { DIMSUM_REFERENCE: reference } : {}) };
 }
 
 export function spawnTerminal(command: string, args: string[], cwd: string, cols: number, rows: number, env: Record<string, string> = {}): IPty {

@@ -54,6 +54,14 @@ File paths in the agent's output are links. Click one to open the file at that l
 
 Web links the agent prints open in your default browser. The first time you click one in a workspace, DimSum asks before opening it. Choose **Open Link** and later links in that workspace open without asking. Choose **Cancel** and DimSum asks again next time.
 
+## What agents know about DimSum
+
+Every agent session DimSum starts carries a two-sentence note: it is running inside DimSum, and before changing DimSum itself it should read DimSum's agent reference. The reference is a few short files that ship with DimSum and explain how to add or edit [instructions](/guide/personas-instructions#instructions), turn [extensions](/extend/) off or on, and build an extension. The agent reads a file only when your request needs it, so the note is all that sits in its context otherwise.
+
+So you can ask the agent directly, for example "add a repo instruction called Run e2e tests that tells you to run `npm run e2e` before finishing". It writes the option into `.dimsum/instructions.json`, or into `.dimsum/instructions.local.json` if you say it's just for you, and the option appears in the Instructions menu.
+
+The note is passed when the CLI starts (see [Harnesses](/reference/harnesses)), not written to the CLI's configuration. Sessions you start outside DimSum don't get it. The reference's path is also in `$DIMSUM_REFERENCE` in every terminal; see [Environment variables](/configure/environment#inside-sessions-and-terminals).
+
 ## Closing and stopping
 
 Closing an agent session's view stops its CLI. DimSum asks first, because the CLI's own state may not be saved yet. Sessions keep running while you switch tabs or workspaces.

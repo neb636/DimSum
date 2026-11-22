@@ -38,6 +38,9 @@ export class CodexAgentProvider implements AgentProviderAdapter {
     try { return ["-c", `projects={${JSON.stringify(realpathSync(folder))}={trust_level="trusted"}}`]; }
     catch { return []; }
   }
+  // Developer instructions for this launch; a JSON string is a valid TOML string. A `developer_instructions` in the
+  // person's own config.toml is replaced for the session, as `-c` overrides that key.
+  systemNoteArgs(note: string) { return ["-c", `developer_instructions=${JSON.stringify(note)}`]; }
   modelArgs(settings: AgentModelSettings) {
     // Plan mode has its own effort setting; without it, switching to Plan changes the chosen effort.
     if (!settings.effort) return ["--model", settings.model];

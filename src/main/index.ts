@@ -3,6 +3,7 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import { AgentModelCatalogue } from "./agent-model-catalogue";
 import { AgentLifecycleChannel } from "./agent-lifecycle-channel";
+import { agentBriefing } from "./agent-briefing";
 import { AgentSessionManager } from "./agent-session-manager";
 import { CommitMessages } from "./internal-ai/commit-message";
 import { InternalAiService } from "./internal-ai/internal-ai-service";
@@ -40,7 +41,7 @@ const agentProviders = [new CodexAgentProvider(), new ClaudeAgentProvider()];
 const agentModels = new AgentModelCatalogue(agentProviders);
 const aiUsage = createAiUsage(agentProviders);
 const lifecycleChannel = new AgentLifecycleChannel();
-const agentSessionManager = new AgentSessionManager(agentProviders, undefined, (viewId) => attachments.folderFor(viewId), agentModels, [aiUsage.launchArgs], isWorkspaceTrusted,
+const agentSessionManager = new AgentSessionManager(agentProviders, undefined, (viewId) => attachments.folderFor(viewId), agentModels, [aiUsage.launchArgs, agentBriefing(agentProviders)], isWorkspaceTrusted,
   lifecycleChannel);
 const internalAi = new InternalAiService(agentProviders, () => path.join(app.getPath("userData"), "internal-ai"));
 const resources = new ResourceMonitor([ptyManager, agentSessionManager]);
