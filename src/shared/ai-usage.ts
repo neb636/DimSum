@@ -57,6 +57,8 @@ export const AI_USAGE_IPC = {
   changed: "ai-usage:changed",
 } as const;
 
+export const AI_USAGE_PROVIDERS = { claude: "claude.cli", codex: "codex.cli" } as const;
+
 export const aiUsageConfigureSchema = z.object({ providers: z.array(z.string().max(100)).max(20) });
 
 export interface AiUsageApi {

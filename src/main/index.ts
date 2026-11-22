@@ -12,6 +12,7 @@ import { APP_URL, assertAppSender, registerAppWindow, developmentUrl, configureS
 import { registerIpc } from "./ipc";
 import { ClaudeAgentProvider } from "./providers/claude-agent-provider";
 import { CodexAgentProvider } from "./providers/codex-agent-provider";
+import { CopilotAgentProvider } from "./providers/copilot-agent-provider";
 import { GitSourceControlProvider } from "./providers/git-source-control-provider";
 import { imagePreview } from "./image-previews";
 import { PromptAttachments, THUMBNAIL_SIDE } from "./prompt-attachments";
@@ -36,7 +37,7 @@ if (app.isPackaged) adoptLoginShellPath();
 
 const ptyManager = new PtyManager();
 const attachments = new PromptAttachments(() => path.join(app.getPath("userData"), "attachments"), (bytes) => imagePreview(bytes, THUMBNAIL_SIDE));
-const agentProviders = [new CodexAgentProvider(), new ClaudeAgentProvider()];
+const agentProviders = [new CodexAgentProvider(), new ClaudeAgentProvider(), new CopilotAgentProvider()];
 const agentModels = new AgentModelCatalogue(agentProviders);
 const aiUsage = createAiUsage(agentProviders);
 const lifecycleChannel = new AgentLifecycleChannel();

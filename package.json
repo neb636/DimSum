@@ -16,6 +16,7 @@
     "qa:context-menus": "npm run build && node scripts/qa-context-menus.mjs",
     "qa:composer": "node scripts/qa-composer.mjs",
     "qa:agent-lifecycle": "npm run build && node scripts/qa-agent-lifecycle.mjs",
+    "qa:copilot": "npm run build && node scripts/qa-copilot.mjs",
     "qa:commit-message": "npm run build && node scripts/qa-commit-message.mjs",
     "qa:confirm-dialogs": "npm run build && node scripts/qa-confirm-dialogs.mjs",
     "qa:resources": "npm run build && node scripts/qa-resources.mjs",

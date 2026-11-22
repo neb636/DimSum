@@ -152,6 +152,8 @@ export interface AgentProviderInfo {
   available: boolean;
   reason?: string;
   resume: boolean;
+  /** Whether the CLI can run built-in AI actions through InternalAiService. */
+  supportsInternalAi: boolean;
   capabilities?: { planning: boolean };
   /** Models offered for new conversations; absent when the adapter takes no model setting. */
   models?: AgentModelChoice[];

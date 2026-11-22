@@ -10,11 +10,11 @@ Select **Add workspace** (the + at the top of the left sidebar) and choose a fol
 
 Create a new **Agent session** view in the workspace. The launcher asks for:
 
-- **Coding harness**: the CLI to run, such as Claude Code or Codex. A CLI DimSum can't find is shown as *Not installed*.
+- **Coding harness**: the CLI to run. DimSum supports Claude Code, Codex, and GitHub Copilot CLI. A CLI DimSum can't find is shown as *Not installed*.
 - **Run in**: where the agent works.
   - **Local checkout** (the default) runs the agent in the folder the session was opened in: the workspace itself, or the worktree whose tabs it's in (shown as **This worktree**).
   - **New worktree** (in a Git repository) gives the session its own branch and folder, in `~/dimsum/worktrees/<repository>-<id>/`. It is created from the default branch, or from a branch you pick under **Create from**. When the session starts, the worktree appears under the workspace in the sidebar and the session moves into it.
-- **Model**: choose one for each new conversation. **Start session** appears once you do.
+- **Model**: when the harness offers a model picker in the composer, choose a model to enable **Start session**. Copilot uses its own model settings.
 
 Select **Start session**. The CLI starts in the terminal, and the composer appears below it.
 

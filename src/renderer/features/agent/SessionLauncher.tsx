@@ -42,7 +42,7 @@ export function SessionLauncher({ workspace, state, providers, selected, busy, n
   return <section className="session-launcher" aria-label="New agent session">
     <div className="launcher-heading">
       <h2>Start a new session</h2>
-      <p>Choose a harness and a model, then send your first prompt. The CLI starts when you send.</p>
+      <p>Choose a harness, then start the session or send your first prompt.</p>
     </div>
     <RadioGroup aria-label="Coding harness" value={selected ?? ""} onChange={(providerId) => onChange({ providerId })} className="harness-options" orientation="horizontal">
       {agents.map((p) => {

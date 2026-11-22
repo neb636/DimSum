@@ -106,8 +106,12 @@ export class AgentSessionManager {
   ) {}
 
   discover(): AgentProviderInfo[] {
-    return this.providers.map((provider) => ({ id: provider.id, label: provider.label, capabilities: provider.capabilities, available: Boolean(executablePath(provider.executable)), resume: true, models: provider.modelArgs ? this.catalogue.modelsFor(provider) : undefined,
-      reason: executablePath(provider.executable) ? undefined : `Install ${provider.label}, or configure its WORKBENCH executable path before starting the app.` }));
+    return this.providers.map((provider) => {
+      const available = Boolean(executablePath(provider.executable));
+      return { id: provider.id, label: provider.label, capabilities: provider.capabilities, available, resume: true,
+        supportsInternalAi: Boolean(provider.oneShot), models: provider.modelArgs ? this.catalogue.modelsFor(provider) : undefined,
+        reason: available ? undefined : `Install ${provider.label}, or configure its WORKBENCH executable path before starting the app.` };
+    });
   }
 
   create(options: AgentSessionCreateOptions, owner: WebContents): string {

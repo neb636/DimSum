@@ -104,6 +104,7 @@ const workbench = defineExtension({
 
     services.sessions.register(cliAgentProvider("claude.cli", "Claude Code", "Anthropic", ClaudeCodeMark));
     services.sessions.register(cliAgentProvider("codex.cli", "Codex", "OpenAI", CodexMark));
+    services.sessions.register(cliAgentProvider("copilot.cli", "GitHub Copilot CLI"));
     services.sessions.register(localTerminalProvider);
 
     ctx.panels.register({ id: "views", label: "Active views", icon: LayersIcon, order: 10, component: ActiveViewsPanel });

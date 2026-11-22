@@ -14,6 +14,7 @@ There are no published builds yet. For now, build DimSum from source.
 - At least one agent CLI, installed and signed in on its own:
   - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (`claude`)
   - [Codex](https://github.com/openai/codex) (`codex`)
+  - [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli) (`copilot`)
 
 DimSum doesn't sign you in or ask for an API key. It runs the CLI you already use, with the account that CLI is already using.
 
@@ -38,7 +39,7 @@ This builds a DMG and an app bundle in `release/`, then opens `release/mac-arm64
 
 ## Finding the agent CLIs
 
-DimSum looks for `claude` and `codex` on your `PATH` and in the usual install folders. If a CLI is somewhere else, point DimSum at it before you start the app:
+DimSum looks for `claude`, `codex`, and `copilot` on your `PATH` and in the usual install folders. If a CLI is somewhere else, set its executable path before starting the app. For example:
 
 ```sh
 WORKBENCH_CLAUDE_PATH=/opt/tools/claude npm run dev
