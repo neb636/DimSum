@@ -22,8 +22,8 @@ export const syntaxClasses = tagHighlighter(syntaxTokens.map(({ tag, token }) =>
 /** Code surfaces stay dark inside the light chrome; every color is a theme token. */
 export const codeTheme = [
   EditorView.theme({
-    "&": { color: "var(--wb-code-fg)", backgroundColor: "var(--wb-code-bg)", height: "100%", fontSize: "12.5px" },
-    ".cm-scroller": { fontFamily: "var(--wb-font-mono)", lineHeight: "1.65" },
+    "&": { color: "var(--wb-code-fg)", backgroundColor: "var(--wb-code-bg)", height: "100%", fontSize: "var(--wb-editor-font-size)" },
+    ".cm-scroller": { fontFamily: "var(--wb-editor-font-family)", lineHeight: "1.65" },
     ".cm-content": { caretColor: "var(--wb-code-cursor)", padding: "10px 0" },
     ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--wb-code-cursor)" },
     ".cm-gutters": { backgroundColor: "var(--wb-code-bg)", color: "var(--wb-code-gutter)", border: "none", paddingLeft: "8px" },

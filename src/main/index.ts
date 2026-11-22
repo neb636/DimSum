@@ -1,3 +1,5 @@
+import { windowBackground } from "./appearance";
+import { savedTheme } from "./persistence";
 import { app, BrowserWindow, dialog, ipcMain, Menu, MenuItem, nativeTheme, shell, type WebContents } from "electron";
 import path from "node:path";
 import { promises as fs } from "node:fs";
@@ -144,7 +146,7 @@ function createWindow(): BrowserWindow {
     minWidth: 960,
     minHeight: 640,
     // The window canvas (--wb-bg-app) in the system appearance, so the first frame matches the page.
-    backgroundColor: nativeTheme.shouldUseDarkColors ? "#161618" : "#ececee",
+    backgroundColor: windowBackground(),
     titleBarStyle: "hiddenInset",
     trafficLightPosition: { x: 22, y: 22 },
     show: !qaHidden,
@@ -206,6 +208,7 @@ app.whenReady().then(async () => {
   });
   addMenuItems();
   addFileMenuItems();
+  nativeTheme.themeSource = await savedTheme();
   createWindow();
   void openFiles(commandLineFiles(process.argv));
   agentModels.start(() => {

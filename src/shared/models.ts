@@ -72,6 +72,19 @@ export interface LayoutState {
   rightPanel?: string;
 }
 
+/** The app's appearance: "system" follows macOS. */
+export type ThemePreference = "light" | "dark" | "system";
+
+/** App-wide preferences set in Settings. Every field has a default, so a profile may store none of them. */
+export interface Preferences {
+  theme: ThemePreference;
+  /** Font ids name an entry of the renderer's monospace font list; an unknown id falls back to the system font. */
+  terminal: { fontFamily: string; fontSize: number };
+  editor: { fontFamily: string; fontSize: number; syntaxTheme: string };
+  /** Prompt menus (by menu id) left out of the composer: neither shown nor added to prompts. */
+  composer: { hiddenMenus: string[] };
+}
+
 export interface PersistedState {
   workspaces: Workspace[];
   activeWorkspaceId?: string;
@@ -84,6 +97,7 @@ export interface PersistedState {
   defaultAgentProviderId?: string;
   /** Each self-contained feature's own settings, by feature id. The feature validates its entry. */
   featureSettings?: Record<string, unknown>;
+  preferences?: Preferences;
 }
 
 export interface PtyCreateOptions {
@@ -490,6 +504,8 @@ export interface WorkbenchApi {
     textMenu: () => void;
     storageMaintenance: (prune: boolean) => Promise<number>;
     revokeExecutionTrust: () => Promise<void>;
+    /** Light, dark, or the system's appearance, for the whole window (native controls included). */
+    setTheme: (theme: ThemePreference) => Promise<void>;
     /** Returns unsubscribe. */
     onMenuCommand: (listener: (command: MenuCommand) => void) => () => void;
     /** Files the system asked the app to open (Finder, the dock, File ▸ Open File…), as absolute paths. Returns unsubscribe. */

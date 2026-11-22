@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getPreferences } from "../../state/preferences";
 import type { AgentDeliveryResult, AgentModelSettings, AgentPromptRequest, AgentViewState, PromptAttachment } from "../../../shared/models";
 import { resumeRequest, savedConversation } from "../../../shared/agent-conversations";
 import { attachmentsPrompt, MAX_ATTACHMENT_BYTES, MAX_ATTACHMENTS } from "../../../shared/prompt-attachments";
@@ -67,9 +68,10 @@ export function setPromptSelections(target: ComposerTarget, promptSelections: Pr
 export function harnessOf(target: ComposerTarget): string | undefined {
   return useAgentRuntimes.getState().sessions[target.viewId]?.providerId ?? stateFor(target)?.providerId ?? useDefaultHarness.getState().id;
 }
-/** The composer menus for this view, with what their conditions may ask about. */
+/** The composer menus for this view, with what their conditions may ask about. Menus hidden in Settings are left out. */
 export function promptMenusFor(target: ComposerTarget) {
-  return services.promptMenus.resolve({ ...target, providerId: harnessOf(target) });
+  const hidden = new Set(getPreferences().composer.hiddenMenus);
+  return services.promptMenus.resolve({ ...target, providerId: harnessOf(target) }).filter(({ menu }) => !hidden.has(menu.id));
 }
 function exists(target: ComposerTarget): boolean {
   const { workspaceId, viewId } = current(target);

@@ -2,6 +2,7 @@ export const IPC = {
   sourceControlPreviewCommitMessage: "source-control:preview-commit-message",
   storageMaintenance: "app:storage-maintenance",
   revokeExecutionTrust: "app:revoke-execution-trust",
+  appSetTheme: "app:set-theme",
   persistenceLoad: "persistence:load",
   persistenceSave: "persistence:save",
   persistenceSaveNow: "persistence:save-now",

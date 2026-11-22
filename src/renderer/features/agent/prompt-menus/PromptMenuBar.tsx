@@ -34,6 +34,7 @@ import { CheckIcon, ChevronDownIcon } from "../../../ui/icons";
 import { harnessOf, promptMenusFor, setPromptSelections, type ComposerTarget } from "../composer-state";
 import { useContributions } from "../../../core/registry";
 import type { PromptConditionContext } from "../../../../shared/prompt-options";
+import { usePreferences } from "../../../state/preferences";
 
 function groupByCategory(options: PromptOptionDefinition[]): [string, PromptOptionDefinition[]][] {
   const groups = new Map<string, PromptOptionDefinition[]>();
@@ -137,6 +138,7 @@ function useMenuUpdates(workspaceId: string) {
 /** Renders every registered prompt menu as a composer button with an options popover. */
 export function PromptMenuBar({ target, selections }: { target: ComposerTarget; selections: PromptSelections }) {
   useMenuUpdates(target.workspaceId);
+  usePreferences(); // Showing or hiding a menu in Settings redraws the bar.
   const [managing, setManaging] = useState<PromptMenuDefinition>();
   const menus: PromptMenuOptions[] = promptMenusFor(target);
   const everyOption = menus.flatMap((item) => item.options);

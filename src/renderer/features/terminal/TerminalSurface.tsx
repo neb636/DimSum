@@ -6,6 +6,7 @@ import "@xterm/xterm/css/xterm.css";
 import type { AgentSessionController, TerminalSessionController } from "../../core/session-provider-registry";
 import { pathsInLine } from "../../../shared/terminal-paths";
 import { openWebLink } from "./web-links";
+import { getPreferences, monoFontStack, usePreferences } from "../../state/preferences";
 
 export interface TerminalSurfaceHandle { focus: () => void; }
 
@@ -24,6 +25,8 @@ export function TerminalSurface({ controller, ref, workspaceId, root, onOpenPath
   useEffect(() => { openPath.current = onOpenPath; }, [onOpenPath]);
   const hostRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
+  const refit = useRef<() => void>(undefined);
+  const { fontFamily, fontSize } = usePreferences().terminal;
   useImperativeHandle(ref, () => ({ focus: () => terminalRef.current?.focus() }), []);
   useEffect(() => {
     setExited(false);
@@ -31,7 +34,8 @@ export function TerminalSurface({ controller, ref, workspaceId, root, onOpenPath
     if (!host) return;
     const styles = getComputedStyle(document.documentElement);
     const token = (name: string) => styles.getPropertyValue(name).trim();
-    const terminal = new Terminal({ cursorBlink: true, fontFamily: token("--wb-font-mono"), fontSize: 13, lineHeight: 1.25,
+    const font = getPreferences().terminal;
+    const terminal = new Terminal({ cursorBlink: true, fontFamily: monoFontStack(font.fontFamily), fontSize: font.fontSize, lineHeight: 1.25,
       scrollback: 2000,
       // Hyperlinks the program prints (OSC 8). xterm's own handler asks with `confirm` and opens a blank window it then
       // navigates, which the main process refuses, so the link never opened.
@@ -107,13 +111,24 @@ export function TerminalSurface({ controller, ref, workspaceId, root, onOpenPath
     }, write, (message) => write(`\r\n${message}\r\n`));
     const input = terminal.onData((data) => { if (attached) { followOutput = true; controller.input(data); } });
     const observer = new ResizeObserver(resize); observer.observe(host);
+    refit.current = resize;
     return () => {
-      active = false; observer.disconnect(); detach(); offExit?.(); offStatus?.(); input.dispose(); scroll.dispose();
+      active = false; refit.current = undefined; observer.disconnect(); detach(); offExit?.(); offStatus?.(); input.dispose(); scroll.dispose();
       links?.dispose(); terminalRef.current = null;
       host.removeEventListener("wheel", wheel, { capture: true }); host.removeEventListener("pointerdown", pointer, { capture: true });
       host.removeEventListener("keydown", key, { capture: true }); terminal.dispose();
     };
   }, [controller, root, workspaceId]);
+  // A new font from Settings applies in place: the grid refits and the session learns its new size.
+  useEffect(() => {
+    const terminal = terminalRef.current;
+    if (!terminal) return;
+    const stack = monoFontStack(fontFamily);
+    if (terminal.options.fontFamily === stack && terminal.options.fontSize === fontSize) return;
+    terminal.options.fontFamily = stack;
+    terminal.options.fontSize = fontSize;
+    refit.current?.();
+  }, [fontFamily, fontSize]);
   return <><div className="terminal-host" ref={hostRef} aria-label="Native CLI terminal" {...menu.bind(() => {
     const terminal = terminalRef.current;
     return [

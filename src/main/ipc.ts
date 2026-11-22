@@ -1,9 +1,10 @@
 import { imagePreview } from "./image-previews";
+import { windowBackground } from "./appearance";
 import { mergePersonalFiles } from "./worktree-adoption";
 import { withConversations } from "./worktree-conversations";
 import { worktreeContainer } from "./worktree-location";
 import type { AgentProviderAdapter } from "./agent-provider";
-import { app, dialog, ipcMain, shell, Menu, type WebContents } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell, Menu, type WebContents } from "electron";
 import { promises as fs } from "node:fs";
 import { FileOperations } from "./file-operations";
 import { basename, join } from "node:path";
@@ -46,6 +47,7 @@ import {
   sourceControlHistorySchema,
   sourceControlPathsSchema,
   sourceControlStashActionSchema,
+  themePreferenceSchema,
 } from "../shared/schemas";
 import type { FilesChangedEvent } from "../shared/models";
 import { AgentSessionManager } from "./agent-session-manager";
@@ -167,6 +169,10 @@ export function handle(channel: string, listener: (event: Electron.IpcMainInvoke
 export function registerIpc(ptyManager: PtyManager, agentSessionManager: AgentSessionManager, workspace: WorkspaceServices, attachments: PromptAttachments, resources: ResourceMonitor, agentProviders: readonly AgentProviderAdapter[]): void {
   resolveExecutionRoot = (root) => workspace.roots.resolve(root);
   handle(IPC.revokeExecutionTrust, () => revokeExecutionTrust());
+  handle(IPC.appSetTheme, (_event, input) => {
+    nativeTheme.themeSource = themePreferenceSchema.parse(input);
+    for (const window of BrowserWindow.getAllWindows()) window.setBackgroundColor(windowBackground());
+  });
   handle(IPC.storageMaintenance, async (_event, prune) => {
     if (typeof prune !== "boolean") throw new Error("Invalid maintenance request.");
     if (prune) {

@@ -18,6 +18,7 @@
     "qa:agent-lifecycle": "npm run build && node scripts/qa-agent-lifecycle.mjs",
     "qa:commit-message": "npm run build && node scripts/qa-commit-message.mjs",
     "qa:confirm-dialogs": "npm run build && node scripts/qa-confirm-dialogs.mjs",
+    "qa:settings": "npm run build && node scripts/qa-settings.mjs",
     "qa:resources": "npm run build && node scripts/qa-resources.mjs",
     "qa:ai-usage": "npm run build && node scripts/qa-ai-usage.mjs",
     "qa:source-control": "npm run build && node scripts/qa-source-control.mjs",
