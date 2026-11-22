@@ -82,8 +82,8 @@ const MODE_CYCLE_ATTEMPTS = 5;
 const QUESTION_DRAWN_MS = 1000;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Extra launch arguments for a new agent session of `providerId` in `cwd`; [] when it doesn't apply. */
-export type LaunchArgsContributor = (providerId: string, cwd: string) => string[];
+/** Extra launch arguments for an agent session of `providerId` in `cwd`, `resumed` when it continues a saved conversation; [] when they don't apply. */
+export type LaunchArgsContributor = (providerId: string, cwd: string, resumed: boolean) => string[];
 
 export class AgentSessionManager {
   private readonly sessions = new Map<string, Session>();
@@ -140,7 +140,7 @@ export class AgentSessionManager {
       args.push(...provider.modelArgs(options.settings));
     }
     if (provider.trustFolder && this.folderTrusted(options.workspacePath)) args.push(...provider.trustFolder(options.workspacePath));
-    for (const contribute of this.launchArgs) args.push(...contribute(provider.id, options.workspacePath));
+    for (const contribute of this.launchArgs) args.push(...contribute(provider.id, options.workspacePath, Boolean(options.resume)));
     // Messages can only come once the CLI runs, by which time the session exists.
     const target: { session?: Session } = {};
     const lifecycle = provider.lifecycle ? this.lifecycleChannel?.open((message) => { if (target.session) this.report(target.session, message); }) : undefined;

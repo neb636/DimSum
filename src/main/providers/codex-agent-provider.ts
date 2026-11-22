@@ -39,7 +39,8 @@ export class CodexAgentProvider implements AgentProviderAdapter {
     catch { return []; }
   }
   // Developer instructions for this launch; a JSON string is a valid TOML string. A `developer_instructions` in the
-  // person's own config.toml is replaced for the session, as `-c` overrides that key.
+  // person's own config.toml is replaced for the session, as `-c` overrides that key. A resumed conversation keeps the
+  // developer instructions it started with, so one started before the note existed never sees it.
   systemNoteArgs(note: string) { return ["-c", `developer_instructions=${JSON.stringify(note)}`]; }
   modelArgs(settings: AgentModelSettings) {
     // Plan mode has its own effort setting; without it, switching to Plan changes the chosen effort.

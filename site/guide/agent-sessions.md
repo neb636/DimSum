@@ -60,7 +60,7 @@ Every agent session DimSum starts carries a two-sentence note: it is running ins
 
 So you can ask the agent directly, for example "add a repo instruction called Run e2e tests that tells you to run `npm run e2e` before finishing". It writes the option into `.dimsum/instructions.json`, or into `.dimsum/instructions.local.json` if you say it's just for you, and the option appears in the Instructions menu.
 
-The note is passed when the CLI starts (see [Harnesses](/reference/harnesses)), not written to the CLI's configuration. Sessions you start outside DimSum don't get it. The reference's path is also in `$DIMSUM_REFERENCE` in every terminal; see [Environment variables](/configure/environment#inside-sessions-and-terminals).
+The note is passed when the CLI starts (see [Harnesses](/reference/harnesses)), not written to the CLI's configuration. Sessions you start outside DimSum don't get it. Resumed Claude Code sessions get the current note. Resumed Codex sessions keep the instructions they started with, so a Codex conversation from before DimSum added the note never gets it. The reference's path is also in `$DIMSUM_REFERENCE` in every terminal; see [Environment variables](/configure/environment#inside-sessions-and-terminals).
 
 ## Closing and stopping
 

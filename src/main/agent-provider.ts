@@ -83,9 +83,10 @@ export interface AgentProviderAdapter {
   trustFolder?: (folder: string) => string[];
   /**
    * Launch arguments that add `note` to the session's system (or developer) instructions for this launch only, without
-   * writing the CLI's own configuration. Sessions started outside DimSum never see it.
+   * writing the CLI's own configuration. Sessions started outside DimSum never see it. `resumed` when the launch continues
+   * a saved conversation, whose CLI may otherwise keep the instructions that conversation started with.
    */
-  systemNoteArgs?: (note: string) => string[];
+  systemNoteArgs?: (note: string, resumed: boolean) => string[];
   /** Models offered for new conversations until the CLI's own list has been read, or when it can't be. */
   models?: AgentModelChoice[];
   listModels?: AgentModelListing;

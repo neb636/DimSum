@@ -42,7 +42,11 @@ export class ClaudeAgentProvider implements AgentProviderAdapter {
   readFolderArgs(folder: string) { return ["--add-dir", folder]; }
   // Claude has no launch flag for folder trust; it keeps the answer in its own state file.
   trustFolder(folder: string) { acceptClaudeFolderTrust(folder); return []; }
-  systemNoteArgs(note: string) { return ["--append-system-prompt", note]; }
+  // Claude Code records a conversation's system prompt on its first request and resends that record on every resume,
+  // ignoring a later --append-system-prompt. A resumed launch renders the prompt afresh instead, so it carries this note.
+  systemNoteArgs(note: string, resumed: boolean) {
+    return ["--append-system-prompt", note, ...(resumed ? ["--system-prompt-snapshot", "off"] : [])];
+  }
   modelArgs(settings: AgentModelSettings) { return ["--model", settings.model, ...(settings.effort ? ["--effort", settings.effort] : [])]; }
   // --safe-mode leaves the user's hooks, MCP servers and instructions out. Not --bare: it skips the keychain login.
   readonly oneShot = {

@@ -9,11 +9,11 @@ function briefingNote(reference: string): string {
     + " and follow it. Otherwise ignore this note.";
 }
 
-/** Points each new agent session at the agent reference, through its adapter's system note; nothing when the build has none. */
+/** Points each agent session, new or resumed, at the agent reference through its adapter's system note; nothing when the build has none. */
 export function agentBriefing(providers: AgentProviderAdapter[], reference = agentReferencePath()): LaunchArgsContributor {
   const note = reference ? briefingNote(reference) : undefined;
-  return (providerId) => {
+  return (providerId, _cwd, resumed) => {
     if (!note) return [];
-    return providers.find((provider) => provider.id === providerId)?.systemNoteArgs?.(note) ?? [];
+    return providers.find((provider) => provider.id === providerId)?.systemNoteArgs?.(note, resumed) ?? [];
   };
 }
