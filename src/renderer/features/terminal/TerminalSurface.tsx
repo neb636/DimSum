@@ -2,6 +2,7 @@ import { useContextMenu } from "../../ui/ContextMenu";
 import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
+import { WebLinksAddon } from "@xterm/addon-web-links";
 import "@xterm/xterm/css/xterm.css";
 import type { AgentSessionController, TerminalSessionController } from "../../core/session-provider-registry";
 import { pathsInLine } from "../../../shared/terminal-paths";
@@ -49,6 +50,9 @@ export function TerminalSurface({ controller, ref, workspaceId, root, onOpenPath
     });
     const fit = new FitAddon(); terminal.loadAddon(fit); terminal.open(host);
     terminalRef.current = terminal;
+    // Plain URLs in the output open in the browser. `linkHandler` only covers OSC 8 hyperlinks, which many programs don't
+    // print and which the screen snapshot a view gets on attach doesn't keep. A URL may wrap onto the next rows.
+    terminal.loadAddon(new WebLinksAddon((_event, uri) => void openWebLink(workspaceId, uri)));
     // Paths in the output open that file (at that line) when clicked; only real files under the root are links.
     const known = new Map<string, boolean>();
     const links = root ? terminal.registerLinkProvider({

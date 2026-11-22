@@ -52,7 +52,7 @@ Select code in a file and press <kbd>⌘</kbd><kbd>L</kbd>, or choose **Send to 
 
 File paths in the agent's output are links. Click one to open the file at that line.
 
-Web links the agent prints open in your default browser. The first time you click one in a workspace, DimSum asks before opening it. Choose **Open Link** and later links in that workspace open without asking. Choose **Cancel** and DimSum asks again next time.
+Web links the agent prints open in your default browser, including long ones that wrap onto the next lines. The first time you click one in a workspace, DimSum asks before opening it. Choose **Open Link** and later links in that workspace open without asking. Choose **Cancel** and DimSum asks again next time.
 
 ## What agents know about DimSum
 
