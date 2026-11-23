@@ -30,9 +30,18 @@ function titleIn(transcript: string): string | undefined {
   return undefined;
 }
 
-/** Whether Claude Code has a transcript of any conversation run in `folder`. */
+/**
+ * Whether Claude Code has a transcript of any conversation run in `folder` or a folder inside it. Folder names can't
+ * be told apart from "-" once flattened, so a sibling like `folder-2` counts too; that only ever keeps more.
+ */
 export async function claudeHasConversations(folder: string): Promise<boolean> {
-  return (await readdir(projectFolder(folder)).catch(() => [] as string[])).some((name) => name.endsWith(".jsonl"));
+  const own = path.basename(projectFolder(folder));
+  const projects = path.dirname(projectFolder(folder));
+  const candidates = (await readdir(projects).catch(() => [] as string[])).filter((name) => name === own || name.startsWith(`${own}-`));
+  for (const name of candidates) {
+    if ((await readdir(path.join(projects, name)).catch(() => [] as string[])).some((file) => file.endsWith(".jsonl"))) return true;
+  }
+  return false;
 }
 
 /** Titles of Claude Code conversations run in `folder`, newest first. Reads only Claude's own files. */

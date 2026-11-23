@@ -73,11 +73,14 @@ async function threadNames(): Promise<Map<string, string>> {
   return names;
 }
 
-/** Whether Codex has a rollout of any thread run in `folder`. */
+/** Whether Codex has a rollout of any thread run in `folder` or a folder inside it. */
 export async function codexHasConversations(folder: string): Promise<boolean> {
   await indexRollouts();
   const wanted = path.resolve(folder);
-  return [...rollouts.values()].some((item) => item.cwd && path.resolve(item.cwd) === wanted);
+  return [...rollouts.values()].some((item) => {
+    const relative = item.cwd ? path.relative(wanted, path.resolve(item.cwd)) : undefined;
+    return relative !== undefined && !relative.startsWith("..") && !path.isAbsolute(relative);
+  });
 }
 
 /** Titles of Codex threads run in `folder`, newest first. Reads only Codex's own files. */
