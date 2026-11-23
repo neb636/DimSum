@@ -17,14 +17,19 @@ gh pr create --base main --title '<title>' --body-file body.md
 
 ## 2. Watch Codex's review
 
-Codex reviews every PR on open and on each push. Right after pushing, watch once in the background (Monitor tool;
-silent until it prints, stops by itself after 7 minutes):
+Codex reviews every PR on open and on each push. Right after every push, watch. A review normally lands in 1-2 minutes;
+give it up to 15 before treating it as missing:
 
 ```
-node scripts/watch-codex-review.mjs --pr <n>
+node scripts/watch-codex-review.mjs --pr <n> --timeout 900
 ```
 
-It prints `CLEAN`, `FINDINGS` (one block per comment), `NOREVIEW`, `TIMEOUT` or `CLOSED`.
+The script is silent until it prints one line and exits by itself at the timeout. If your agent has a background
+monitor (Claude Code's Monitor tool), run it there and keep working. Otherwise run it in the foreground and wait for it
+to exit; if your command timeout is shorter than 15 minutes, run it again when it is cut off.
+
+It prints `CLEAN`, `FINDINGS` (one block per comment), `NOREVIEW`, `TIMEOUT` or `CLOSED`. Only `CLEAN` ends the loop
+(see step 4).
 
 ## 3. Handle each finding (the user never sees these)
 
@@ -37,4 +42,16 @@ It prints `CLEAN`, `FINDINGS` (one block per comment), `NOREVIEW`, `TIMEOUT` or 
      (`-f content=-1`) and reply `Not worth it: <why>`. A crash, lost data, a leak or a feature that doesn't work
      as built is never nitpicky.
    - **Needs the user's input:** say so in one line in your final message.
-3. **One round only:** after a pushed fix, comment `@codex review` once with a line on what changed, then stop.
+3. After a pushed fix, comment `@codex review` once with a line on what changed, then go back to step 2 and watch
+   that push.
+
+## 4. Keep going until Codex is clean
+
+Repeat steps 2-3 for every push until the watcher prints `CLEAN` for the PR's latest commit. A re-review that finds
+new issues is a new round, not the end. Do not stop after one re-review, and do not hand the PR back while findings
+are unanswered.
+
+- `TIMEOUT` (no finished review after 15 minutes): Codex sometimes never responds. Comment `@codex review` once and
+  watch again. If that second watch also times out, stop and tell the user Codex did not respond.
+- `NOREVIEW` (Codex declined, e.g. setup notice) or `CLOSED`: stop and tell the user.
+- If findings keep coming after 5 rounds of fixes, stop and tell the user what is still open.
