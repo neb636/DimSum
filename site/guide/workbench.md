@@ -6,7 +6,7 @@ The DimSum window has four parts: the workspaces on the left, the open views in 
 
 The left sidebar lists your workspaces. Each one is a folder, and its agent sessions are listed under it, one line each, with a status dot and their status on the right; hover a session for the full detail. A collapsed row shows how many sessions it holds, with a dot when one of them has news you haven't seen.
 
-Right-click a workspace to create a new view in it, reveal its folder, open it in a terminal, copy its path, give it a custom icon, or remove it. Removing a workspace takes it out of DimSum, with its worktrees, and leaves every folder alone.
+Right-click a workspace to create a new view in it, reveal its folder, open it in a terminal, copy its path, give it a custom icon, or remove it. Removing a workspace takes it out of DimSum, with its worktrees, and leaves every folder alone. Once a workspace lists Local and worktrees, only the workspace's own row can remove it: Local's menu acts on that checkout alone, so it has no **Remove Workspace** where each worktree has **Close Worktree**.
 
 ### Local and worktrees
 

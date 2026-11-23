@@ -148,6 +148,9 @@ const workbench = defineExtension({
       const { workspace } = context;
       if (isFilesWorkspace(workspace)) return [{ id: "remove", label: "Close All Files", destructive: true, section: "remove", run: () => services.commands.execute("workspace.remove", workspace.id) }];
       const worktree = Boolean(workspace.parentId);
+      // Local sits among the worktree rows, where the last item closes just that checkout. There it would remove the
+      // repository with every worktree, so the icon and removal stay on the repository's own row.
+      const whole = !worktree && !context.local;
       return [
         ...services.views.list(workspace.id).filter((d) => d.creatable !== false).map((d) => ({ id: `new-${d.id}`, label: `New ${d.label}`, section: "create", run: () => services.commands.execute("view.create", { workspaceId: workspace.id, viewType: d.id }) })),
         ...(supportsWorktrees(workspace) ? [
@@ -156,11 +159,11 @@ const workbench = defineExtension({
         ] : []),
         ...[{ id: "reveal", label: "Reveal Folder", command: "workspace.reveal" }, { id: "terminal", label: "Open in Terminal", command: "workspace.terminal" }, { id: "copy", label: "Copy Path", command: "workspace.copyPath" }].map((item) => ({ ...item, section: "workspace", run: () => services.commands.execute(item.command, { workspaceId: workspace.id }) })),
         // A worktree is shown with its repository's icon row above it, so only the repository has one.
-        ...(worktree ? [] : [
+        ...(whole ? [
           { id: "choose-icon", label: workspace.icon ? "Change Custom Icon…" : "Set Custom Icon…", section: "icon", run: () => services.commands.execute("workspace.chooseIcon", { workspaceId: workspace.id }) },
           ...(workspace.icon ? [{ id: "remove-icon", label: "Remove Custom Icon", section: "icon", run: () => services.commands.execute("workspace.removeIcon", { workspaceId: workspace.id }) }] : []),
-        ]),
-        { id: "remove", label: worktree ? "Close Worktree" : "Remove Workspace", destructive: true, section: "remove", run: () => services.commands.execute("workspace.remove", workspace.id) },
+        ] : []),
+        ...(worktree || whole ? [{ id: "remove", label: worktree ? "Close Worktree" : "Remove Workspace", destructive: true, section: "remove", run: () => services.commands.execute("workspace.remove", workspace.id) }] : []),
       ];
     } });
     registerFileActionContributions();
