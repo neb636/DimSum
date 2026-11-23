@@ -110,8 +110,7 @@ const tree = () => page.getByRole("treegrid", { name: "Workspaces" });
 const row = (name) => tree().getByRole("row", { name, exact: true }).first();
 const level = (name) => row(name).getAttribute("aria-level");
 const newWorktree = async () => {
-  // The + shows on hover, like the tree's other row actions.
-  await row("repo").hover();
+  // The + is always on the repository's row, like the tree's other row actions.
   await row("repo").getByRole("button", { name: "New worktree" }).click();
 };
 const tab = (name) => page.getByRole("tab", { name, exact: true });
