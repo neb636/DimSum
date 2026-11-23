@@ -148,7 +148,14 @@ export interface ContextAction {
 export interface TextSelection { location: FileLocation; text: string; fromLine: number; toLine: number }
 
 export type MenuContext =
-  | { kind: "workspace"; workspace: Workspace }
+  | {
+    kind: "workspace"; workspace: Workspace;
+    /**
+     * The menu is for the repository's own checkout, listed as Local beside its worktrees, not for the workspace with
+     * its worktrees: leave out what acts on the whole workspace, such as removing it.
+     */
+    local?: boolean;
+  }
   | { kind: "view"; workspace: Workspace; view: WorkbenchView }
   | { kind: "file"; workspace: Workspace; location: FileLocation; directory: boolean; available?: boolean; line?: number }
   | { kind: "selection"; workspace: Workspace; selection: TextSelection };

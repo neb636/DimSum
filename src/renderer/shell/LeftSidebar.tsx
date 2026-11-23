@@ -79,7 +79,7 @@ function CheckoutRow({ workspace, isLocal, isActive, statuses, menu }: { workspa
   const sessions = sidebarViews(workspace);
   const label = isLocal ? "Local" : workspace.name;
   return <TreeItem id={isLocal ? `${LOCAL}${workspace.id}` : workspace.id} textValue={label} hasChildItems={sessions.length > 0}
-    className={`checkout-row ${isActive ? "is-active" : ""}`} {...menu.bind(() => workspaceActions(workspace))}>
+    className={`checkout-row ${isActive ? "is-active" : ""}`} {...menu.bind(() => workspaceActions(workspace, isLocal))}>
     <TreeItemContent>
       {({ isExpanded, hasChildItems }) => <div className="checkout-row-content" title={workspace.path}>
         <TreeToggle isExpanded={isExpanded} hasChildItems={hasChildItems} name={label} className="tree-icon">{isLocal ? <FolderIcon size={13} /> : <BranchIcon size={13} />}</TreeToggle>
@@ -89,7 +89,7 @@ function CheckoutRow({ workspace, isLocal, isActive, statuses, menu }: { workspa
           {isLocal && <small><WorkspaceMeta workspace={workspace} /></small>}
         </span>
         {!isExpanded && <Hidden sessions={sessions} statuses={statuses} />}
-        {menu.overflow(workspaceActions(workspace), label)}
+        {menu.overflow(workspaceActions(workspace, isLocal), label)}
       </div>}
     </TreeItemContent>
     <SessionRows workspace={workspace} isCurrent={isActive} statuses={statuses} menu={menu} />
@@ -173,7 +173,7 @@ export function LeftSidebar({ onCollapse }: { onCollapse: () => void }) {
   return <aside className="sidebar-card left-sidebar" aria-label="Workspaces sidebar" onKeyDown={menu.bind((target) => {
     const key = target.closest("[role=row]")?.getAttribute("data-key");
     const workspace = workspaceOf(key);
-    if (workspace) return workspaceActions(workspace);
+    if (workspace) return workspaceActions(workspace, Boolean(key?.startsWith(LOCAL)));
     const owner = stored.find((w) => w.views.some((v) => v.id === key));
     const view = owner?.views.find((v) => v.id === key);
     return owner && view ? viewActions(owner, view) : [];

@@ -16,6 +16,7 @@ export function viewActions(workspace: Workspace, view: WorkbenchView): ContextA
     ...services.contextMenus.forTarget({ kind: "view", workspace, view }),
   ];
 }
-export function workspaceActions(workspace: Workspace): ContextAction[] {
-  return services.contextMenus.forTarget({ kind: "workspace", workspace });
+/** `local`: for the repository's Local row, which stands for its own checkout rather than the whole workspace. */
+export function workspaceActions(workspace: Workspace, local = false): ContextAction[] {
+  return services.contextMenus.forTarget({ kind: "workspace", workspace, ...(local ? { local } : {}) });
 }
