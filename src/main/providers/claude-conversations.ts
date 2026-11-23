@@ -30,6 +30,11 @@ function titleIn(transcript: string): string | undefined {
   return undefined;
 }
 
+/** Whether Claude Code has a transcript of any conversation run in `folder`. */
+export async function claudeHasConversations(folder: string): Promise<boolean> {
+  return (await readdir(projectFolder(folder)).catch(() => [] as string[])).some((name) => name.endsWith(".jsonl"));
+}
+
 /** Titles of Claude Code conversations run in `folder`, newest first. Reads only Claude's own files. */
 export async function claudeConversationTitles(folder: string): Promise<ConversationTitle[]> {
   const directory = projectFolder(folder);

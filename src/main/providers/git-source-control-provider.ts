@@ -461,23 +461,26 @@ export class GitSourceControlProvider implements SourceControlProvider {
   }
 
   /**
-   * The checkout's HEAD reflog starts where `git worktree add` made it (which may log a no-op reset there too); every
-   * commit, reset or checkout since adds an entry. While none points anywhere else or switched branches, HEAD is still
-   * where it started and nothing changed, the checkout was never used. Its branch goes too, only while it still points
-   * where it started.
+   * The checkout's HEAD reflog starts where `git worktree add` made it, from nothing (it may log a no-op reset there
+   * too); every commit, reset or checkout since adds an entry. While that first entry is still there, none points
+   * anywhere else or switched branches, HEAD is still where it started and there are no files git doesn't track
+   * (ignored ones included, which `git worktree remove` would delete too), the checkout was never used. Its branch goes
+   * too, only while it still points where it started.
    */
   async removeUnusedWorktree(root: string, worktree: string): Promise<boolean> {
     const gitDir = (await this.git(worktree, ["rev-parse", "--absolute-git-dir"])).trim();
     const entries = (await readFile(path.join(gitDir, "logs", "HEAD"), "utf8").catch(() => "")).split("\n").filter(Boolean)
-      .map((line) => ({ to: line.split(" ")[1], message: line.split("\t")[1] ?? "" }));
+      .map((line) => ({ from: line.split(" ")[0], to: line.split(" ")[1], message: line.split("\t")[1] ?? "" }));
     const created = entries[0]?.to;
-    if (!created || entries.some((entry) => entry.to !== created || entry.message.startsWith("checkout:"))) return false;
-    const [head, branch, { changes }] = await Promise.all([
+    // An expired creation entry leaves a later one first, which doesn't start from nothing.
+    if (!created || !/^0+$/.test(entries[0].from) || entries.some((entry) => entry.to !== created || entry.message.startsWith("checkout:"))) return false;
+    const [head, branch, { changes }, ignored] = await Promise.all([
       this.git(worktree, ["rev-parse", "HEAD"]).then((output) => output.trim()),
       this.git(worktree, ["symbolic-ref", "-q", "HEAD"]).then((output) => output.trim(), () => ""),
       this.status(worktree),
+      this.git(worktree, ["ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z"]),
     ]);
-    if (head !== created || changes.length) return false;
+    if (head !== created || changes.length || ignored.length) return false;
     // Without --force, git itself still refuses a checkout that has changes after all.
     await this.git(root, ["worktree", "remove", "--", worktree]);
     if (branch.startsWith("refs/heads/")) await this.git(root, ["update-ref", "-d", branch, created]).catch(() => undefined);

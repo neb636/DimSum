@@ -98,6 +98,8 @@ export interface AgentProviderAdapter {
    * nothing; best effort, so an empty list when it can't tell.
    */
   conversationTitles?: (folder: string) => Promise<ConversationTitle[]>;
+  /** Whether the CLI has any conversation in `folder`, titled or not, read from its own files. Sends nothing. */
+  hasConversations?: (folder: string) => Promise<boolean>;
   /** Run once without a terminal: prompt on stdin, answer as plain text on stdout. Used only by InternalAiService. */
   oneShot?: { args: () => string[]; quickTaskModel: AgentModelSettings };
   /**

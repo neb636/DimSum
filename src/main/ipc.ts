@@ -1,7 +1,7 @@
 import { imagePreview } from "./image-previews";
 import { windowBackground } from "./appearance";
 import { mergePersonalFiles } from "./worktree-adoption";
-import { withConversations } from "./worktree-conversations";
+import { hasConversations, withConversations } from "./worktree-conversations";
 import { worktreeContainer } from "./worktree-location";
 import type { AgentProviderAdapter } from "./agent-provider";
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell, Menu, type WebContents } from "electron";
@@ -437,8 +437,7 @@ export function registerIpc(ptyManager: PtyManager, agentSessionManager: AgentSe
     const folder = await fs.realpath(match.path);
     await Promise.all([ptyManager.terminateIn(folder), agentSessionManager.terminateIn(folder), ptyManager.terminateIn(match.path), agentSessionManager.terminateIn(match.path)]);
     // An agent conversation there, even one from before the app last started, is work worth keeping the checkout for.
-    const [withTitles] = await withConversations(agentProviders, [match]);
-    if (withTitles?.conversations?.length) return false;
+    if (await hasConversations(agentProviders, [...new Set([match.path, folder])])) return false;
     return workspace.sourceControl.removeUnusedWorktree(allowed, match.path);
   });
   handle(IPC.sourceControlBranches, async (_event, input: unknown) =>

@@ -5,6 +5,16 @@ import type { ExistingWorktree } from "../shared/models";
 const TITLES = 3;
 
 /**
+ * Whether any provider has a conversation in one of `folders` (the same checkout by its listed and real path). A
+ * provider that can't tell, or fails, counts as having one, so nothing is deleted on its account.
+ */
+export async function hasConversations(providers: readonly AgentProviderAdapter[], folders: string[]): Promise<boolean> {
+  const found = await Promise.all(providers.flatMap((provider) => folders.map((folder) =>
+    provider.hasConversations ? provider.hasConversations(folder).catch(() => true) : Promise.resolve(Boolean(provider.conversationTitles)))));
+  return found.some(Boolean);
+}
+
+/**
  * Adds to each worktree what the agents' conversations there were called, from every provider that can tell. Only
  * reads the CLIs' own files; a provider that fails adds nothing.
  */
