@@ -7,6 +7,7 @@ import { repositoryOf } from "../../../shared/workspace-tree";
 import { services } from "../../core/services";
 import { reloadConfig } from "../../core/config-layers";
 import { useWorkbenchStore } from "../../state/workbench-store";
+import { useAgentRuntimes } from "../../core/agent-runtimes";
 
 /**
  * Worktrees: other checkouts of a workspace's repository, each a workspace of its own listed under the repository
@@ -97,7 +98,7 @@ export async function createWorktree({ workspaceId, branch, base, open = "agent"
   const from = base ?? (await sourceControl.baseBranches(repository.path)).defaultRef;
   const created = await sourceControl.createWorktree(repository.path, branch, from);
   const store = useWorkbenchStore.getState();
-  const id = store.addWorkspace(created.path, { parentId: repository.id, name: created.branch, initialView: moveViewId ? null : open });
+  const id = store.addWorkspace(created.path, { parentId: repository.id, name: created.branch, initialView: moveViewId ? null : open, unused: true });
   if (moveViewId) store.transferView(moveViewId, id, { cwd: created.path });
   else show(id);
   return { workspaceId: id, path: created.path };
@@ -162,7 +163,37 @@ export async function removeWorktree(repositoryId: string, path: string, force: 
   await window.workbench.sourceControl.removeWorktree(repository.path, path, force);
 }
 
+/**
+ * Removes a workspace (and the worktrees listed under it) from the sidebar, once its tabs are closed. Each worktree
+ * made here that no session worked in is also deleted from disk with its branch, if main finds nothing done there
+ * either (changes, commits, an agent conversation); otherwise it stays on disk as closing always leaves it.
+ */
+export function closeWorkspace(workspaceId: string): void {
+  const store = useWorkbenchStore.getState();
+  const closing = store.workspaces.filter((item) => item.id === workspaceId || item.parentId === workspaceId);
+  const repository = closing.find((item) => !item.parentId) ?? store.workspaces.find((item) => item.id === closing[0]?.parentId);
+  const remaining = store.workspaces.filter((item) => !closing.includes(item));
+  const unused = repository ? closing.filter((item) => item.unused && !remaining.some((other) => samePath(other.path, item.path))) : [];
+  // Asked before the workspaces leave the saved state, while main still knows the repository's folder.
+  for (const worktree of unused) {
+    void window.workbench.sourceControl.removeUnusedWorktree(repository!.path, worktree.path)
+      .catch((error: unknown) => console.warn(`Could not delete the unused worktree ${worktree.path}`, String(error)));
+  }
+  store.removeWorkspace(workspaceId);
+}
+
+/** Once an agent session in an unused worktree has a prompt or a turn, the worktree is used. */
+function watchWorktreeUse(): () => void {
+  return useAgentRuntimes.subscribe(({ sessions }) => {
+    const { workspaces, markWorktreeUsed } = useWorkbenchStore.getState();
+    for (const workspace of workspaces) {
+      if (workspace.unused && workspace.views.some((view) => sessions[view.id]?.prompted || (sessions[view.id]?.status?.started ?? 0) > 0)) markWorktreeUsed(workspace.id);
+    }
+  });
+}
+
 export function registerWorktrees(ctx: ExtensionContext): void {
+  ctx.subscriptions.push({ dispose: watchWorktreeUse() });
   ctx.commands.register<{ workspaceId: string }>("worktree.new", ({ workspaceId }) => {
     useWorktreeManager.setState({ repositoryId: undefined });
     useWorktreeDialog.setState({ repositoryId: repositoryFor(workspaceId).id });

@@ -127,6 +127,7 @@ const api: WorkbenchApi = {
     openWorktree: (root, path, adopting) => ipcRenderer.invoke(IPC.sourceControlOpenWorktree, { root, path, adopting }),
     worktreeDetails: (root) => ipcRenderer.invoke(IPC.sourceControlWorktreeDetails, { root }),
     removeWorktree: (root, path, force) => ipcRenderer.invoke(IPC.sourceControlRemoveWorktree, { root, path, force }),
+    removeUnusedWorktree: (root, path) => ipcRenderer.invoke(IPC.sourceControlRemoveUnusedWorktree, { root, path }),
     branches: (root) => ipcRenderer.invoke(IPC.sourceControlBranches, { root }),
     baseBranches: (root, refresh) => ipcRenderer.invoke(IPC.sourceControlBaseBranches, { root, refresh }),
     checkout: (root, branch) => ipcRenderer.invoke(IPC.sourceControlCheckout, { root, branch }),

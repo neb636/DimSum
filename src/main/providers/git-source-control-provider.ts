@@ -460,6 +460,37 @@ export class GitSourceControlProvider implements SourceControlProvider {
     await this.git(root, ["worktree", "remove", ...(force ? ["--force"] : []), "--", worktree]);
   }
 
+  /**
+   * The checkout's HEAD reflog starts where `git worktree add` made it, from nothing (it may log a no-op reset there
+   * too); every commit, reset or checkout since adds an entry. While that first entry is still there, none points
+   * anywhere else or switched branches, HEAD is still where it started and there are no files git doesn't track
+   * (ignored ones included, which `git worktree remove` would delete too) or tracked files status can't see (marked
+   * skip-worktree or assume-unchanged), the checkout was never used. Its branch goes
+   * too, only while it still points where it started.
+   */
+  async removeUnusedWorktree(root: string, worktree: string): Promise<boolean> {
+    const gitDir = (await this.git(worktree, ["rev-parse", "--absolute-git-dir"])).trim();
+    const entries = (await readFile(path.join(gitDir, "logs", "HEAD"), "utf8").catch(() => "")).split("\n").filter(Boolean)
+      .map((line) => ({ from: line.split(" ")[0], to: line.split(" ")[1], message: line.split("\t")[1] ?? "" }));
+    const created = entries[0]?.to;
+    // An expired creation entry leaves a later one first, which doesn't start from nothing.
+    if (!created || !/^0+$/.test(entries[0].from) || entries.some((entry) => entry.to !== created || entry.message.startsWith("checkout:"))) return false;
+    const [head, branch, { changes }, ignored, tracked] = await Promise.all([
+      this.git(worktree, ["rev-parse", "HEAD"]).then((output) => output.trim()),
+      this.git(worktree, ["symbolic-ref", "-q", "HEAD"]).then((output) => output.trim(), () => ""),
+      this.status(worktree),
+      this.git(worktree, ["ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z"]),
+      // -v tags skip-worktree files "S" and assume-unchanged ones in lowercase: edits there don't show in status.
+      this.git(worktree, ["ls-files", "-v", "-z"]),
+    ]);
+    const hidden = tracked.split("\0").some((entry) => entry && (entry[0] === "S" || entry[0] !== entry[0].toUpperCase()));
+    if (head !== created || changes.length || ignored.length || hidden) return false;
+    // Without --force, git itself still refuses a checkout that has changes after all.
+    await this.git(root, ["worktree", "remove", "--", worktree]);
+    if (branch.startsWith("refs/heads/")) await this.git(root, ["update-ref", "-d", branch, created]).catch(() => undefined);
+    return true;
+  }
+
   /** The ref comes from the renderer, so it must name an existing branch; one on origin is first brought up to date. */
   private async prepareBase(root: string, base: string): Promise<void> {
     if (!/^refs\/(heads|remotes)\/./.test(base)) throw new Error("Choose a branch to create the worktree from.");

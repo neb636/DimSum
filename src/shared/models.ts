@@ -28,6 +28,11 @@ export interface Workspace {
    * and is listed under that workspace in the sidebar, beside its local checkout.
    */
   parentId?: string;
+  /**
+   * A worktree made here (New worktree) that no agent session has worked in yet. Closing it while it is still unused
+   * deletes its checkout and branch, when its source control also shows nothing done there.
+   */
+  unused?: boolean;
   /** A PNG data URL shown instead of the folder icon. */
   icon?: string;
   /** Global or shared instructions the person turned off in this workspace. */
@@ -578,6 +583,11 @@ export interface WorkbenchApi {
     worktreeDetails: (root: string) => Promise<WorktreeDetails[]>;
     /** Deletes one of `worktrees(root)` from disk; its branch is kept. `force`: even with uncommitted changes. */
     removeWorktree: (root: string, path: string, force?: boolean) => Promise<void>;
+    /**
+     * Deletes one of `worktrees(root)` and its branch only if nothing was ever done there: no changes, no commits or
+     * checkouts, and no agent conversation. Resolves whether it did.
+     */
+    removeUnusedWorktree: (root: string, path: string) => Promise<boolean>;
     branches: (root: string) => Promise<string[]>;
     /** With `refresh`, first updates from the remote (best effort). */
     baseBranches: (root: string, refresh?: boolean) => Promise<BaseBranches>;

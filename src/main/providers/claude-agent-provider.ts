@@ -1,5 +1,5 @@
 import type { AgentModelListing, AgentProviderAdapter, AgentSubmission, ScreenObservation } from "../agent-provider";
-import { claudeConversationTitles } from "./claude-conversations";
+import { claudeConversationTitles, claudeHasConversations } from "./claude-conversations";
 import { acceptClaudeFolderTrust } from "./claude-config";
 import { claudeLifecycle, mergeClaudeSettings } from "./claude-hooks";
 import { claudeMode, detectCliScreen, pasteChunks } from "./cli-screen";
@@ -23,6 +23,7 @@ export class ClaudeAgentProvider implements AgentProviderAdapter {
   readonly executable = process.env.WORKBENCH_CLAUDE_PATH ?? "claude";
   readonly interrupt = "\u001b";
   readonly conversationTitles = claudeConversationTitles;
+  readonly hasConversations = claudeHasConversations;
   // Claude Code's model aliases follow its newest model of each family.
   readonly models: AgentModelChoice[] = ["opus", "fable", "sonnet", "haiku"].map((id) => ({ id, label: id[0].toUpperCase() + id.slice(1), efforts: EFFORTS }));
   // The handshake that opens a headless session lists the models and starts no conversation. Setting sources are
