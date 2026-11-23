@@ -33,8 +33,8 @@ function WorkspaceMeta({ workspace }: { workspace: Workspace }) {
 }
 
 /**
- * A row's icon, which becomes its expand/collapse chevron while the row is hovered or focused, so the tree spends no
- * width on a separate chevron column.
+ * A row's icon, which doubles as its expand/collapse button: the chevron shows only while the icon itself is hovered
+ * or focused, so the tree spends no width on a separate chevron column and hovering the row keeps its icon.
  */
 function TreeToggle({ isExpanded, hasChildItems, name, className, children }: { isExpanded: boolean; hasChildItems: boolean; name: string; className: string; children: ReactNode }) {
   return <span className={`tree-toggle ${className} ${hasChildItems ? "has-chevron" : ""}`}>
@@ -124,7 +124,7 @@ function WorkspaceRow({ workspace, worktrees, activeWorkspaceId, statuses, menu 
           {!files && !grouped && <small><WorkspaceMeta workspace={workspace} /></small>}
         </span>
         {!isExpanded && <Hidden sessions={sessions} statuses={statuses} />}
-        {canBranch && <IconButton label="New worktree" className="row-action is-pinned" onPress={() => void services.commands.execute("worktree.new", { workspaceId: workspace.id })}><PlusIcon size={13} /></IconButton>}
+        {canBranch && <IconButton label="New worktree" className="row-action" onPress={() => void services.commands.execute("worktree.new", { workspaceId: workspace.id })}><PlusIcon size={13} /></IconButton>}
         {menu.overflow(workspaceActions(workspace), workspace.name)}
       </div>}
     </TreeItemContent>

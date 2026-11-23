@@ -73,7 +73,6 @@
 .workspace-row-content { min-height: 32px; }
 .workspace-tree [aria-level="2"] > * > :is(.checkout-row-content, .session-row-content) { --wb-tree-indent: 12px; }
 .workspace-tree [aria-level="3"] > * > .session-row-content { --wb-tree-indent: 24px; }
-.workspace-row[data-hovered] .workspace-row-content, .checkout-row[data-hovered] .checkout-row-content, .session-row[data-hovered] .session-row-content { background: var(--wb-bg-hover); }
 .workspace-row[data-focus-visible] .workspace-row-content, .session-row[data-focus-visible] .session-row-content, .checkout-row[data-focus-visible] .checkout-row-content { box-shadow: inset 0 0 0 2px var(--wb-focus-ring); }
 .workspace-icon {
   display: grid;
@@ -139,9 +138,9 @@
 .tree-toggle-chevron.is-expanded svg { transform: rotate(90deg); }
 .tree-toggle-chevron[data-hovered] { background: var(--wb-bg-selected); color: var(--wb-text-primary); }
 .tree-toggle-chevron[data-focus-visible] { box-shadow: inset 0 0 0 2px var(--wb-focus-ring); }
-/* ...and swaps to its chevron while the row is hovered or focused. */
-.workspace-tree [role="row"]:is([data-hovered], [data-focus-visible]) .tree-toggle-chevron, .tree-toggle-chevron[data-focus-visible] { opacity: 1; }
-.workspace-tree [role="row"]:is([data-hovered], [data-focus-visible]) .has-chevron > .tree-toggle-icon, .has-chevron:has(> [data-focus-visible]) > .tree-toggle-icon { opacity: 0; }
+/* ...and shows its chevron only while the toggle itself is hovered or focused, so hovering the row leaves its icon alone. */
+.tree-toggle-chevron:is([data-hovered], [data-focus-visible]) { opacity: 1; }
+.has-chevron:has(> :is([data-hovered], [data-focus-visible])) > .tree-toggle-icon { opacity: 0; }
 .row-action {
   display: grid;
   place-items: center;
@@ -159,13 +158,10 @@
 }
 [role="row"][data-hovered] .row-action, [role="row"][data-focus-visible] .row-action, [role="row"]:focus-within .row-action, .row-action[aria-expanded="true"] { opacity: 1; }
 .row-action[data-hovered], .row-action[aria-expanded="true"] { background: var(--wb-bg-selected); color: var(--wb-text-primary); }
-.session-row.is-current .session-row-content, .session-row.is-current[data-hovered] .session-row-content { background: var(--wb-bg-selected); }
+.session-row.is-current .session-row-content { background: var(--wb-bg-selected); }
 .checkout-row.is-active .tree-icon { color: var(--wb-accent); }
-/* The tree's hover actions take no width until their row is hovered or focused; they stay in the accessibility tree. */
-.workspace-tree .row-action:not([aria-expanded="true"]) { width: 0; margin: 0; overflow: hidden; }
-.workspace-tree [role="row"][data-hovered] .row-action, .workspace-tree [role="row"][data-focus-visible] .row-action, .workspace-tree [role="row"]:focus-within .row-action { width: var(--wb-control-sm); }
-/* A pinned action is always visible, not only on hover. */
-.workspace-tree [role="row"] .row-action.is-pinned { width: var(--wb-control-sm); opacity: 1; }
+/* The tree's row actions are always visible, so a row looks the same hovered or not. */
+.workspace-tree [role="row"] .row-action { width: var(--wb-control-sm); opacity: 1; }
 
 .sidebar-empty { padding: var(--wb-space-2) var(--wb-space-4); color: var(--wb-text-secondary); line-height: 18px; }
 .sidebar-footer { display: grid; flex: none; gap: 2px; padding: var(--wb-space-2); border-top: 1px solid var(--wb-border-subtle); }
@@ -490,6 +486,6 @@
   .side-panel-header .wb-icon-button { width: 22px; height: 22px; }
   .panel-list-item small { display: none; }
   /* Hover actions take no width until their row is hovered or focused; they stay in the accessibility tree. */
-  [role="row"] .row-action:not([aria-expanded="true"]) { width: 0; margin: 0; overflow: hidden; }
+  :not(.workspace-tree) > [role="row"] .row-action:not([aria-expanded="true"]) { width: 0; margin: 0; overflow: hidden; }
   [role="row"][data-hovered] .row-action, [role="row"][data-focus-visible] .row-action, [role="row"]:focus-within .row-action { width: var(--wb-control-sm); }
 }
