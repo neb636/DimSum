@@ -460,6 +460,30 @@ export class GitSourceControlProvider implements SourceControlProvider {
     await this.git(root, ["worktree", "remove", ...(force ? ["--force"] : []), "--", worktree]);
   }
 
+  /**
+   * The checkout's HEAD reflog starts where `git worktree add` made it (which may log a no-op reset there too); every
+   * commit, reset or checkout since adds an entry. While none points anywhere else or switched branches, HEAD is still
+   * where it started and nothing changed, the checkout was never used. Its branch goes too, only while it still points
+   * where it started.
+   */
+  async removeUnusedWorktree(root: string, worktree: string): Promise<boolean> {
+    const gitDir = (await this.git(worktree, ["rev-parse", "--absolute-git-dir"])).trim();
+    const entries = (await readFile(path.join(gitDir, "logs", "HEAD"), "utf8").catch(() => "")).split("\n").filter(Boolean)
+      .map((line) => ({ to: line.split(" ")[1], message: line.split("\t")[1] ?? "" }));
+    const created = entries[0]?.to;
+    if (!created || entries.some((entry) => entry.to !== created || entry.message.startsWith("checkout:"))) return false;
+    const [head, branch, { changes }] = await Promise.all([
+      this.git(worktree, ["rev-parse", "HEAD"]).then((output) => output.trim()),
+      this.git(worktree, ["symbolic-ref", "-q", "HEAD"]).then((output) => output.trim(), () => ""),
+      this.status(worktree),
+    ]);
+    if (head !== created || changes.length) return false;
+    // Without --force, git itself still refuses a checkout that has changes after all.
+    await this.git(root, ["worktree", "remove", "--", worktree]);
+    if (branch.startsWith("refs/heads/")) await this.git(root, ["update-ref", "-d", branch, created]).catch(() => undefined);
+    return true;
+  }
+
   /** The ref comes from the renderer, so it must name an existing branch; one on origin is first brought up to date. */
   private async prepareBase(root: string, base: string): Promise<void> {
     if (!/^refs\/(heads|remotes)\/./.test(base)) throw new Error("Choose a branch to create the worktree from.");

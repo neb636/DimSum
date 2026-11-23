@@ -8,7 +8,7 @@ import { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell, Menu, type Web
 import { promises as fs } from "node:fs";
 import { FileOperations } from "./file-operations";
 import { basename, join } from "node:path";
-import { authorizeWorkspaceExecution, revokeExecutionTrust } from "./workspace-trust";
+import { authorizeWorkspaceExecution, isWorkspaceTrusted, loadExecutionTrust, revokeExecutionTrust } from "./workspace-trust";
 import { assertInputBudget } from "../shared/input-budget";
 import { assertAppSender } from "./security";
 import { IPC } from "../shared/ipc";
@@ -426,6 +426,20 @@ export function registerIpc(ptyManager: PtyManager, agentSessionManager: AgentSe
     const folder = await fs.realpath(match.path);
     await Promise.all([ptyManager.terminateIn(folder), agentSessionManager.terminateIn(folder), ptyManager.terminateIn(match.path), agentSessionManager.terminateIn(match.path)]);
     await workspace.sourceControl.removeWorktree(allowed, match.path, Boolean(force));
+  });
+  handle(IPC.sourceControlRemoveUnusedWorktree, async (_event, input: unknown) => {
+    const { root, path: requested } = workspaceRootSchema.extend({ path: removeWorktreeSchema.shape.path }).parse(input);
+    const allowed = await allowedRoot(root);
+    // Tidying up after a close runs git, but never asks for trust: a repository no longer trusted keeps the checkout.
+    await loadExecutionTrust();
+    if (!isWorkspaceTrusted(allowed)) return false;
+    const match = await listedWorktree(allowed, requested);
+    const folder = await fs.realpath(match.path);
+    await Promise.all([ptyManager.terminateIn(folder), agentSessionManager.terminateIn(folder), ptyManager.terminateIn(match.path), agentSessionManager.terminateIn(match.path)]);
+    // An agent conversation there, even one from before the app last started, is work worth keeping the checkout for.
+    const [withTitles] = await withConversations(agentProviders, [match]);
+    if (withTitles?.conversations?.length) return false;
+    return workspace.sourceControl.removeUnusedWorktree(allowed, match.path);
   });
   handle(IPC.sourceControlBranches, async (_event, input: unknown) =>
     workspace.sourceControl.branches(await allowedRoot(workspaceRootSchema.parse(input).root)));

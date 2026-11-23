@@ -18,7 +18,7 @@ interface WorkbenchStore extends PersistedState {
    * Adds a folder (or selects it when it's already open). A folder that is a worktree of an open workspace is listed
    * under it; `parentId` says so outright. `initialView` is the tab it opens with: an agent session unless told otherwise.
    */
-  addWorkspace: (path: string, options?: { parentId?: string; /** The repository main found this folder to be a worktree of. */ repositoryPath?: string; name?: string; initialView?: "agent" | "terminal" | null }) => string;
+  addWorkspace: (path: string, options?: { parentId?: string; /** The repository main found this folder to be a worktree of. */ repositoryPath?: string; name?: string; initialView?: "agent" | "terminal" | null; /** A worktree just made here: see `Workspace.unused`. */ unused?: boolean }) => string;
   /** The built-in Files workspace (files opened from outside every workspace), created the first time it's needed. */
   ensureFilesWorkspace: () => string;
   /** Moves a view to another workspace, as its active tab. */
@@ -34,6 +34,8 @@ interface WorkbenchStore extends PersistedState {
   setWorkspaceIcon: (workspaceId: string, icon: string | undefined) => void;
   /** Web links clicked in this workspace's terminals open from now on without asking. */
   allowWebLinks: (workspaceId: string) => void;
+  /** An agent session has worked in this worktree, so closing it keeps its checkout. */
+  markWorktreeUsed: (workspaceId: string) => void;
   createView: (workspaceId: string, type: string, title: string, state?: unknown) => string;
   selectView: (workspaceId: string, viewId: string) => void;
   closeView: (workspaceId: string, viewId: string) => void;
@@ -104,6 +106,7 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => ({
       name: options.name ?? workspaceName(path),
       path,
       ...(repository ? { parentId: repository.id } : {}),
+      ...(repository && options.unused ? { unused: true } : {}),
       views: initialView ? [initialView] : [],
       activeViewId: initialView?.id,
     };
@@ -164,6 +167,9 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => ({
   })),
   allowWebLinks: (workspaceId) => set((state) => ({
     workspaces: mapWorkspace(state.workspaces, workspaceId, (workspace) => ({ ...workspace, opensWebLinks: true })),
+  })),
+  markWorktreeUsed: (workspaceId) => set((state) => ({
+    workspaces: mapWorkspace(state.workspaces, workspaceId, (workspace) => { const used = { ...workspace }; delete used.unused; return used; }),
   })),
   updateViewState: (workspaceId, viewId, patch) => set((state) => ({
     workspaces: mapWorkspace(state.workspaces, workspaceId, (workspace) => ({

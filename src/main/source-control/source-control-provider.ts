@@ -51,6 +51,11 @@ export interface SourceControlProvider {
   worktreeDetails?: (root: string) => Promise<WorktreeDetails[]>;
   /** Deletes a checkout `worktrees(root)` listed, keeping its branch; refuses one with uncommitted changes unless `force`. */
   removeWorktree?: (root: string, worktree: string, force: boolean) => Promise<void>;
+  /**
+   * Deletes a checkout `worktrees(root)` listed, and its branch, only if nothing was ever done there: no changes, and
+   * nothing committed or checked out since it was made. Resolves whether it did.
+   */
+  removeUnusedWorktree?: (root: string, worktree: string) => Promise<boolean>;
   branches: (root: string) => Promise<string[]>;
   /** Every branch a worktree can start from and which is the default; `refresh` first updates from the remote, best effort. */
   baseBranches: (root: string, refresh?: boolean) => Promise<BaseBranches>;
@@ -223,6 +228,11 @@ export class SourceControlService {
     const provider = await this.require(root);
     if (!provider.removeWorktree) throw unsupported(provider);
     return provider.removeWorktree(root, worktree, force);
+  }
+
+  async removeUnusedWorktree(root: string, worktree: string): Promise<boolean> {
+    const provider = await this.providerFor(root);
+    return provider?.removeUnusedWorktree ? provider.removeUnusedWorktree(root, worktree) : false;
   }
 
   private async require(root: string): Promise<SourceControlProvider> {

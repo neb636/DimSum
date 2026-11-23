@@ -35,7 +35,7 @@ import { aiUsage } from "../features/ai-usage/register-ai-usage";
 import { extensions } from "../features/extensions/register-extensions";
 import { activateExtension } from "../extensions/host";
 import { publishWorkbenchEvents } from "./workbench-events";
-import { registerWorktrees, supportsWorktrees } from "../features/worktrees/worktrees";
+import { closeWorkspace, registerWorktrees, supportsWorktrees } from "../features/worktrees/worktrees";
 import { defineExtension, guard, maxLength, nativeCommand, secrets, type ExtensionDefinition } from "@dimsum/sdk";
 import { BranchIcon, CommitIcon, FileIcon, FilesIcon, LayersIcon, TerminalIcon } from "../ui/icons";
 
@@ -200,7 +200,7 @@ const workbench = defineExtension({
           if (!await services.commands.execute<boolean>("view.close", { workspaceId: owner.id, viewId: view.id, confirmed: true })) return;
         }
       }
-      useWorkbenchStore.getState().removeWorkspace(workspaceId);
+      closeWorkspace(workspaceId);
     });
     ctx.commands.register<{ workspaceId: string; viewType: string }>("view.create", ({ workspaceId, viewType }) => {
       const definition = services.views.get(viewType, workspaceId);
@@ -225,7 +225,7 @@ const workbench = defineExtension({
       if (confirmation && last) {
         const answer = await confirmDestructiveWithOption(confirmation, {
           label: `Also close the worktree ${last.name}`,
-          detail: "Takes it out of the sidebar. Its folder and branch stay on disk.",
+          detail: last.unused ? "Takes it out of the sidebar. If nothing was done in it, its folder and branch are deleted." : "Takes it out of the sidebar. Its folder and branch stay on disk.",
           selected: closeEmptiedWorktree,
         });
         if (answer === undefined) return false;
@@ -239,7 +239,7 @@ const workbench = defineExtension({
       clearComposerRuntime(viewId);
       useWorkbenchStore.getState().closeView(workspaceId, viewId);
       if (closeWorktree && useWorkbenchStore.getState().workspaces.find((item) => item.id === workspaceId)?.views.length === 0) {
-        useWorkbenchStore.getState().removeWorkspace(workspaceId);
+        closeWorkspace(workspaceId);
       }
       return true;
     });
