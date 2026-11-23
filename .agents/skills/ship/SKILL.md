@@ -17,12 +17,16 @@ gh pr create --base main --title '<title>' --body-file body.md
 
 ## 2. Watch Codex's review
 
-Codex reviews every PR on open and on each push. Right after every push, watch in the background (Monitor tool;
-silent until it prints). A review normally lands in 1-2 minutes; give it up to 15 before treating it as missing:
+Codex reviews every PR on open and on each push. Right after every push, watch. A review normally lands in 1-2 minutes;
+give it up to 15 before treating it as missing:
 
 ```
 node scripts/watch-codex-review.mjs --pr <n> --timeout 900
 ```
+
+The script is silent until it prints one line and exits by itself at the timeout. If your agent has a background
+monitor (Claude Code's Monitor tool), run it there and keep working. Otherwise run it in the foreground and wait for it
+to exit; if your command timeout is shorter than 15 minutes, run it again when it is cut off.
 
 It prints `CLEAN`, `FINDINGS` (one block per comment), `NOREVIEW`, `TIMEOUT` or `CLOSED`. Only `CLEAN` ends the loop
 (see step 4).
