@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { create } from "zustand";
-import type { UsageSnapshot } from "../../../shared/ai-usage";
+import { AI_USAGE_PROVIDERS, type UsageSnapshot } from "../../../shared/ai-usage";
 import type { AgentProviderInfo } from "../../../shared/models";
 import { services } from "../../core/services";
 import { useWorkbenchStore } from "../../state/workbench-store";
@@ -24,12 +24,14 @@ export function useAiUsageSettings(): [AiUsageSettings, (patch: Partial<AiUsageS
   return [settings, update];
 }
 
-/** Installed agent CLIs, kept current as installs change. */
+const meteredProviders = new Set<string>(Object.values(AI_USAGE_PROVIDERS));
+
+/** Installed agent CLIs with a plan usage source, kept current as installs change. */
 export function useInstalledAgents(): AgentProviderInfo[] {
   const [agents, setAgents] = useState<AgentProviderInfo[]>([]);
   useEffect(() => {
     let active = true;
-    const keep = (providers: AgentProviderInfo[]) => { if (active) setAgents(providers.filter((provider) => provider.available && services.sessions.get(provider.id)?.kind === "agent")); };
+    const keep = (providers: AgentProviderInfo[]) => { if (active) setAgents(providers.filter((provider) => provider.available && meteredProviders.has(provider.id) && services.sessions.get(provider.id)?.kind === "agent")); };
     window.workbench.agent.providers().then(keep).catch(() => undefined);
     const off = window.workbench.agent.onProvidersChanged(keep);
     return () => { active = false; off(); };

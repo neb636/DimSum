@@ -10,6 +10,8 @@ Only trust repositories you know. DimSum remembers your answer for that folder a
 
 Claude Code and Codex each ask whether to trust a folder the first time they start in it. When you have trusted a workspace in DimSum, an agent session started in it or in one of its worktrees skips that question: DimSum marks the folder as trusted for Claude Code in its `~/.claude.json` (or `$CLAUDE_CONFIG_DIR/.claude.json`), and starts Codex with a one-off setting that trusts the folder without writing to Codex's config. Folders you haven't trusted in DimSum still get the CLI's own question. DimSum also marks its own attachments folder as trusted for Claude Code, so a session that can read your attached files doesn't ask about that folder; it holds only files you attached.
 
+GitHub Copilot CLI manages folder trust and tool permissions in its own terminal. Answer Copilot's prompts there, including any requests for access to attached files.
+
 Otherwise trust in DimSum doesn't change what the agent CLIs may do. Their approval prompts for commands and edits still decide what the agent can run.
 
 ## Resetting trust

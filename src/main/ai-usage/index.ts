@@ -1,6 +1,6 @@
 import { app, BrowserWindow } from "electron";
 import path from "node:path";
-import { AI_USAGE_IPC, aiUsageConfigureSchema } from "../../shared/ai-usage";
+import { AI_USAGE_IPC, AI_USAGE_PROVIDERS, aiUsageConfigureSchema } from "../../shared/ai-usage";
 import type { AgentProviderAdapter } from "../agent-provider";
 import { handle } from "../ipc";
 import { AiUsageService } from "./ai-usage-service";
@@ -18,8 +18,8 @@ export function createAiUsage(providers: AgentProviderAdapter[]): AiUsageService
   const folder = () => path.join(app.getPath("userData"), "ai-usage");
   // The sources this build knows, for whichever of their providers are registered.
   const sources = providers.flatMap((provider): UsageSource[] => {
-    if (provider.id === "claude.cli") return [new ClaudeUsageSource(provider.id, provider.label, folder)];
-    if (provider.id === "codex.cli") return [new CodexUsageSource(provider.id, provider.label, provider.executable)];
+    if (provider.id === AI_USAGE_PROVIDERS.claude) return [new ClaudeUsageSource(provider.id, provider.label, folder)];
+    if (provider.id === AI_USAGE_PROVIDERS.codex) return [new CodexUsageSource(provider.id, provider.label, provider.executable)];
     return [];
   });
   return new AiUsageService(sources, () => BrowserWindow.getFocusedWindow() !== null, (snapshot) => {

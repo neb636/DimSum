@@ -90,10 +90,10 @@ export function AgentComposer({ workspaceId, viewId, agentLabel, state, session,
   const pending = session ? pendingSettings(agent, state) : undefined;
   const restartLabel = pending !== undefined ? modelLabel(providerId, pending) : "";
   const unused = Boolean(agent && isUnusedConversation(agent));
-  // A CLI that's still starting takes the prompt too: it's held until the CLI is ready.
-  const starting = Boolean(session && !status?.canSubmit && status?.lifecycle !== "exited" && status?.lifecycle !== "failed");
+  // The composer can hold a prompt until the native CLI is ready.
+  const canWait = status?.lifecycle !== "exited" && status?.lifecycle !== "failed";
   const canSend = !runtime.attaching && hasDraft && !busy && !needsModel && (!wantsPlan || planning)
-    && (session ? starting || Boolean(status?.canSubmit) : canLaunch);
+    && (session ? canWait : canLaunch);
   const historyEntry = runtime.history.find((entry) => entry.id === historyId) ?? runtime.history[0];
   const send = () => {
     if (!canSend) return;
@@ -132,7 +132,7 @@ export function AgentComposer({ workspaceId, viewId, agentLabel, state, session,
           : status?.queuedPrompt ? status.reason
           : !session ? (needsModel ? "Choose a model to start." : "")
             : pending !== undefined ? (unused ? `Sending restarts the CLI with ${restartLabel}.` : `This conversation runs ${modelLabel(providerId, agent?.settings ?? null)}. Restart to use ${restartLabel}.`)
-              : starting ? "The CLI is starting: send now and it goes as soon as it’s ready." : !status?.canSubmit ? status?.reason
+              : !status || status.lifecycle === "starting" ? "The CLI is starting: send now and it goes as soon as it’s ready." : !status.canSubmit ? status.reason
                 : wantsPlan && status.activity !== "ready" ? "Plan mode switches once the CLI is ready."
                   : runtime.result?.message || status?.reason);
 

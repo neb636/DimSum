@@ -1,16 +1,24 @@
 # Agent sessions
 
-An agent session runs a coding agent's own CLI in a terminal, with DimSum's composer underneath it. The terminal is the real CLI, so everything you know about Claude Code or Codex still works there. The composer helps you write and send prompts to it.
+An agent session runs a coding agent's own CLI in a terminal, with DimSum's composer underneath it. DimSum supports Claude Code, Codex, and GitHub Copilot CLI.
 
 ## The launcher
 
-A new agent session view opens on the launcher. Choose the **coding harness**, where it should **run** (the checkout it was opened in, or a new worktree that it moves into when it starts), and a **model**. Then select **Start session**, or **Resume previous…** to pick up a saved conversation from that CLI. See [Your first session](/first-session) for a step-by-step walkthrough.
+A new agent session view opens on the launcher. Choose the **coding harness**, where it should **run** (the current checkout or a new worktree), and a **model** if the composer offers a model picker. Then select **Start session**, or **Resume previous…** to pick up a saved conversation from that CLI. See [Your first session](/first-session) for a step-by-step walkthrough.
+
+## GitHub Copilot CLI
+
+Install [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli) and select it in the launcher. If DimSum can't find it, set `WORKBENCH_COPILOT_PATH` to the executable's absolute path before starting DimSum. The integration was verified with Copilot CLI 1.0.114.
+
+Sign in and answer folder-trust or permission questions in Copilot's terminal. Use Copilot's native controls for model selection, effort, and Plan mode. DimSum's composer waits for Copilot to finish its current turn. To queue a prompt during a turn, use Copilot's terminal. Choose **Resume previous…** to select a saved session in Copilot's picker.
+
+The **Default CLI** setting for built-in AI actions and the plan usage display support Claude Code and Codex.
 
 ## The composer
 
 The composer toolbar has:
 
-- **Model**, **Effort** and **Mode** pickers. Mode switches between **Code** and **Plan**. DimSum switches the CLI's own plan mode for you.
+- **Model**, **Effort** and **Mode** pickers depend on the harness. When **Plan** is available in the composer, DimSum switches the CLI's native mode for you.
 - **Interrupt**: stops what the agent is doing.
 - **Attach files** (+), **Recent prompts** and **Collapse composer**.
 

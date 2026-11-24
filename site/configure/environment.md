@@ -6,6 +6,7 @@ Set these before you start DimSum.
 | --- | --- |
 | `WORKBENCH_CLAUDE_PATH` | Full path to the `claude` executable, if DimSum doesn't find it on `PATH` or in the usual install folders. |
 | `WORKBENCH_CODEX_PATH` | Full path to the `codex` executable. |
+| `WORKBENCH_COPILOT_PATH` | Full path to the `copilot` executable. |
 | `WORKBENCH_USER_DATA_DIR` | Use a separate DimSum profile folder, for example to try something out without touching your real workspaces and drafts. |
 | `DIMSUM_HOME` | Use a different folder in place of `~/.dimsum` for your own configuration and extensions. |
 | `CLAUDE_CONFIG_DIR` | Claude Code's own setting. DimSum respects it when reading Claude plan usage. |
